@@ -1,0 +1,150 @@
+<div class="min-h-screen flex flex-col">
+  <!-- Encabezado -->
+  <header class="bg-white shadow-[0_1px_0_#e3e8f1]">
+    <div class="barra-marca" aria-hidden="true"></div>
+    <div class="mx-auto flex max-w-[1180px] items-center gap-4 px-6 py-3">
+      <img src="logo-dep.png" alt="Educación Pública — Ministerio de Educación" class="h-14 w-auto select-none" draggable="false" />
+      <span class="hidden h-9 w-px bg-[#dfe4ee] sm:block" aria-hidden="true"></span>
+      <div class="hidden leading-tight sm:block">
+        <p class="font-display text-[17px] font-extrabold tracking-tight text-dep-navy">GDP - SLEP Studio</p>
+        <p class="text-[10.5px] font-bold uppercase tracking-[0.14em] text-dep-blue">Portal de aplicaciones</p>
+      </div>
+
+      <div class="ml-auto flex items-center gap-4">
+        <div class="hidden text-right leading-tight sm:block">
+          <p class="text-[13px] font-bold text-dep-navy">{{ auth.usuario()?.nombreParaMostrar }}</p>
+          <p class="text-[11px] text-slate-500">{{ etiquetaRol(auth.usuario()?.rolPortal) }}</p>
+        </div>
+        <button
+          type="button"
+          (click)="auth.logout()"
+          class="flex items-center gap-2 rounded-lg border border-[#d5dbe8] bg-white px-3.5 py-2 text-[12.5px] font-bold text-dep-navy transition hover:border-dep-red hover:text-dep-red cursor-pointer"
+        >
+          <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 4H5v16h4M16 8l4 4-4 4M20 12H9" />
+          </svg>
+          Salir
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenido -->
+  <main class="mx-auto w-full max-w-[1180px] flex-1 px-6 py-10">
+    <div class="mb-8">
+      <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-dep-blue">Bienvenido/a</p>
+      <h1 class="mt-1 font-display text-[30px] font-extrabold leading-tight tracking-tight text-dep-navy">
+        Hola, {{ auth.usuario()?.nombreParaMostrar }}
+      </h1>
+      <p class="mt-1.5 text-[14px] text-slate-600">Selecciona la aplicación a la que quieres ingresar.</p>
+    </div>
+
+    @switch (estado()) {
+      @case ('cargando') {
+        <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3" aria-busy="true" aria-label="Cargando tus aplicaciones">
+          @for (i of [1, 2, 3]; track i) {
+            <div class="h-72 animate-pulse rounded-2xl border border-[#e3e8f1] bg-white"></div>
+          }
+        </div>
+      }
+
+      @case ('error') {
+        <div role="alert" class="max-w-xl rounded-2xl border border-[#ffc9d1] bg-[#fff1f3] p-6">
+          <p class="text-[14px] font-semibold text-[#b4112b]">{{ mensajeError() }}</p>
+          <button type="button" (click)="cargar()" class="mt-4 rounded-lg bg-dep-navy px-4 py-2 text-[13px] font-bold text-white hover:bg-dep-blue cursor-pointer">
+            Reintentar
+          </button>
+        </div>
+      }
+
+      @case ('listo') {
+        @if (modulos().length === 0) {
+          <div class="max-w-xl rounded-2xl border border-[#e3e8f1] bg-white p-6">
+            <p class="text-[14px] font-bold text-dep-navy">Todavía no tienes aplicaciones asignadas.</p>
+            <p class="mt-1 text-[13px] text-slate-600">Escríbele a quien administra el sistema para que te dé acceso.</p>
+          </div>
+        } @else {
+          <div class="grid items-start gap-6 md:grid-cols-2 xl:grid-cols-3">
+            @for (m of modulos(); track m.id) {
+              <section class="flex flex-col overflow-hidden rounded-2xl border border-[#e3e8f1] bg-white shadow-[0_8px_24px_-14px_rgba(37,48,107,0.35)]" [attr.aria-labelledby]="'mod-' + m.id">
+                <div class="h-1.5" [style.background]="m.color" aria-hidden="true"></div>
+
+                <header class="flex min-h-[88px] items-center gap-3.5 px-5 pb-3 pt-5">
+                  <span class="grid size-11 shrink-0 place-items-center rounded-xl text-white" [style.background]="m.color" aria-hidden="true">
+                    <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      @switch (m.icono) {
+                        @case ('formularios') {
+                          <path d="M7 3h7l4 4v14H7z" /><path d="M14 3v4h4" /><path d="M9.5 12h5M9.5 15.5h5" />
+                        }
+                        @case ('automatizacion') {
+                          <path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12z" />
+                        }
+                        @default {
+                          <path d="M4 7h10M18 7h2M4 17h2M10 17h10" /><circle cx="16" cy="7" r="2" /><circle cx="8" cy="17" r="2" />
+                        }
+                      }
+                    </svg>
+                  </span>
+                  <div class="min-w-0 leading-tight">
+                    <h2 [id]="'mod-' + m.id" class="font-display text-[14px] font-extrabold uppercase tracking-wide text-dep-navy">{{ m.nombre }}</h2>
+                    <p class="mt-0.5 text-[11.5px] text-slate-500">{{ cantidad(m.aplicaciones.length) }}</p>
+                  </div>
+                </header>
+
+                <ul class="flex flex-col gap-2.5 px-4 pb-4">
+                  @for (a of m.aplicaciones; track a.id) {
+                    <li>
+                      @if (a.estado === 'activa' && a.url) {
+                        <a
+                          [href]="a.url"
+                          target="_blank"
+                          rel="noopener"
+                          class="group block rounded-xl border border-[#d9e0ee] bg-white p-4 transition hover:-translate-y-0.5 hover:shadow-[0_10px_22px_-12px_rgba(37,48,107,0.5)]"
+                          [style.--acento]="m.color"
+                          style="border-left: 4px solid var(--acento)"
+                        >
+                          <div class="flex items-start justify-between gap-3">
+                            <p class="text-[14px] font-bold leading-snug text-dep-navy group-hover:text-dep-blue">{{ a.nombre }}</p>
+                            <svg class="mt-0.5 size-5 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-dep-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                              <path d="M5 12h14M13 6l6 6-6 6" />
+                            </svg>
+                          </div>
+                          <p class="mt-1 text-[12.5px] leading-snug text-slate-600">{{ a.descripcion }}</p>
+                          <div class="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+                            <span class="inline-flex items-center gap-1.5 rounded-full bg-[#eaf6dc] px-2.5 py-0.5 text-[10.5px] font-bold text-[#47710f]">
+                              <span class="size-1.5 rounded-full bg-[#6aa81a]"></span> Disponible
+                            </span>
+                            @if (a.rol) {
+                              <span class="rounded-full bg-dep-gray px-2.5 py-0.5 text-[10.5px] font-bold text-dep-navy">Rol: {{ a.rol }}</span>
+                            }
+                            @if (textoAlcance(a.alcance); as alcance) {
+                              <span class="text-[11px] text-slate-500">{{ alcance }}</span>
+                            }
+                          </div>
+                        </a>
+                      } @else {
+                        <div class="rounded-xl border border-dashed border-[#cdd5e6] bg-[#f8f9fc] p-4" aria-disabled="true">
+                          <p class="text-[14px] font-bold leading-snug text-dep-navy/55">{{ a.nombre }}</p>
+                          <p class="mt-1 text-[12.5px] leading-snug text-slate-500">{{ a.descripcion }}</p>
+                          <div class="mt-3">
+                            <span class="inline-block rounded-full border border-[#d5dbe8] bg-white px-2.5 py-0.5 text-[10.5px] font-bold uppercase tracking-wider text-slate-500">Próximamente</span>
+                          </div>
+                        </div>
+                      }
+                    </li>
+                  }
+                </ul>
+              </section>
+            }
+          </div>
+        }
+      }
+    }
+  </main>
+
+  <footer class="border-t border-[#e3e8f1] bg-white">
+    <p class="mx-auto max-w-[1180px] px-6 py-4 text-[11.5px] text-slate-500">
+      GDP - Gestión y Desarrollo de Personas · Dirección de Educación Pública · Ministerio de Educación
+    </p>
+  </footer>
+</div>

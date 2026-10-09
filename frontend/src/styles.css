@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------
+   Identidad gráfica — Manual de Normas Gráficas DEP 2026.
+   Colores oficiales (RGB/HEX del manual, página 12):
+     Azul institucional  #25306B   Azul gobierno  #006BB9
+     Rojo gobierno       #FF1D3D   Gris claro     #EDF0F5
+   Los seis colores del logo (se usan juntos, en la barra de marca):
+     #ff3c4c  #ff798a  #f8d63c  #90d039  #3abff0  #1f84ec
+   ------------------------------------------------------------------ */
+@theme {
+  --color-dep-navy: #25306B;
+  --color-dep-blue: #006BB9;
+  --color-dep-red: #FF1D3D;
+  --color-dep-gray: #EDF0F5;
+
+  /* Tipografías oficiales: gobCL (titulares) y Museo Sans (texto). Si no
+     están instaladas, cae a la fuente del sistema — ver el bloque
+     @font-face de abajo para incluirlas en el sitio. */
+  --font-display: 'gobCL', 'Museo Sans', 'Segoe UI', system-ui, sans-serif;
+  --font-sans: 'Museo Sans', 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+}
+
+/* Para que las tipografías oficiales viajen con el sitio: descarga gobCL y
+   Museo Sans desde el enlace del manual (página 11), copia los archivos
+   .woff2 a la carpeta public/fonts/ y descomenta estas líneas.
+
+@font-face { font-family: 'gobCL'; font-weight: 700; src: url('/fonts/gobCL-Bold.woff2') format('woff2'); font-display: swap; }
+@font-face { font-family: 'gobCL'; font-weight: 800; src: url('/fonts/gobCL-Heavy.woff2') format('woff2'); font-display: swap; }
+@font-face { font-family: 'Museo Sans'; font-weight: 300; src: url('/fonts/MuseoSans-300.woff2') format('woff2'); font-display: swap; }
+@font-face { font-family: 'Museo Sans'; font-weight: 500; src: url('/fonts/MuseoSans-500.woff2') format('woff2'); font-display: swap; }
+@font-face { font-family: 'Museo Sans'; font-weight: 700; src: url('/fonts/MuseoSans-700.woff2') format('woff2'); font-display: swap; }
+*/
+
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: #1c2447;
+  background: #f4f6fa;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Barra de marca: los seis colores del logo, en tramos parejos. */
+.barra-marca {
+  height: 6px;
+  background: linear-gradient(90deg,
+    #ff3c4c 0 16.666%, #ff798a 0 33.333%, #f8d63c 0 50%,
+    #90d039 0 66.666%, #3abff0 0 83.333%, #1f84ec 0);
+}
+
+/* Fondo institucional de la pantalla de ingreso: azul del manual, con una
+   retícula muy sutil (sensación técnica, sin competir con el logo). */
+.fondo-institucional {
+  position: relative;
+  background:
+    radial-gradient(900px 480px at 50% -8%, rgba(58, 191, 240, 0.20), transparent 62%),
+    linear-gradient(180deg, #2e3c99 0%, #25306B 52%, #1c2559 100%);
+}
+.fondo-institucional::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse at center, #000 30%, transparent 78%);
+  pointer-events: none;
+}
+
+:focus-visible { outline: 2px solid #3abff0; outline-offset: 2px; }
