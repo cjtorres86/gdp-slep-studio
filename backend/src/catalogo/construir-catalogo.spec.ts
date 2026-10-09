@@ -68,3 +68,36 @@ describe('construirCatalogo', () => {
     expect(r[0].aplicaciones[0].alcance).toEqual(['Barrancas', 'Los Álamos']);
   });
 });
+
+describe('construirCatalogo — módulo Documentación (solo Admin y Superadmin)', () => {
+  const mods = [
+    ...modulos.filter((m) => m.id !== 'config'),
+    { id: 'docs', nombre: 'Documentación', icono: 'documentacion', color: '#3abff0', orden: 3 },
+    { id: 'config', nombre: 'Configuración', icono: 'configuracion', color: '#25306B', orden: 4 },
+  ] as Modulo[];
+  const conDocs = [
+    ...apps,
+    { id: 'doc_proyecto', moduloId: 'docs', nombre: 'Documentación del Proyecto', descripcion: '', url: 'https://proyecto.example', estado: 'activa', visibilidad: 'admin', orden: 1 },
+    { id: 'doc_marco_legal', moduloId: 'docs', nombre: 'Documentación Marco Legal', descripcion: '', url: 'https://marco.example', estado: 'activa', visibilidad: 'admin', orden: 2 },
+  ] as Aplicacion[];
+
+  it('una persona normal (ej.: un SLEP) no ve el módulo, ni siquiera como "próximamente"', () => {
+    const r = construirCatalogo(mods, conDocs, 'usuario', [acceso('sumarios', 'Digitador', ['Barrancas'])]);
+    expect(r.map((m) => m.id)).not.toContain('docs');
+  });
+
+  it('un Admin lo ve con sus dos accesos, con dirección, entre Automatización y Configuración', () => {
+    const r = construirCatalogo(mods, conDocs, 'admin', []);
+    expect(r.map((m) => m.id)).toEqual(['gestor', 'auto', 'docs', 'config']);
+    const docs = r.find((m) => m.id === 'docs')!;
+    expect(docs.aplicaciones.map((a) => [a.id, a.url])).toEqual([
+      ['doc_proyecto', 'https://proyecto.example'],
+      ['doc_marco_legal', 'https://marco.example'],
+    ]);
+  });
+
+  it('el Superadmin también lo ve', () => {
+    const r = construirCatalogo(mods, conDocs, 'superadmin', []);
+    expect(r.find((m) => m.id === 'docs')!.aplicaciones).toHaveLength(2);
+  });
+});

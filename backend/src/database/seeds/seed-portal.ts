@@ -9,7 +9,8 @@ import { RolPortal, Usuario } from '../../usuarios/entities/usuario.entity';
 const MODULOS: Modulo[] = [
   { id: 'gestor_formularios', nombre: 'Gestor de Formularios', icono: 'formularios', color: '#1f84ec', orden: 1 },
   { id: 'automatizacion', nombre: 'Automatización de Procesos', icono: 'automatizacion', color: '#90d039', orden: 2 },
-  { id: 'configuracion', nombre: 'Configuración', icono: 'configuracion', color: '#25306B', orden: 3 },
+  { id: 'documentacion', nombre: 'Documentación', icono: 'documentacion', color: '#3abff0', orden: 3 },
+  { id: 'configuracion', nombre: 'Configuración', icono: 'configuracion', color: '#25306B', orden: 4 },
 ] as Modulo[];
 
 const URL_SUMARIOS = 'https://proyecto1-omega-eight.vercel.app';
@@ -18,6 +19,8 @@ const APLICACIONES: Partial<Aplicacion>[] = [
   { id: 'reporte_avance_sumarios', moduloId: 'gestor_formularios', nombre: 'Reporte Avance de Sumarios', descripcion: 'Seguimiento mensual de sumarios administrativos de los 36 SLEP.', url: URL_SUMARIOS, estado: 'activa', visibilidad: 'por_acceso', orden: 1 },
   { id: 'reporte_circular_30', moduloId: 'gestor_formularios', nombre: 'Reporte Circular 30', descripcion: 'Reporte de la Circular 30 para los SLEP.', url: null, estado: 'proximamente', visibilidad: 'por_acceso', orden: 2 },
   { id: 'licencias_medicas', moduloId: 'automatizacion', nombre: 'Licencias Médicas', descripcion: 'Tramitación automatizada de licencias médicas.', url: null, estado: 'proximamente', visibilidad: 'por_acceso', orden: 1 },
+  { id: 'doc_proyecto', moduloId: 'documentacion', nombre: 'Documentación del Proyecto', descripcion: 'Serie de informes técnicos del proyecto GDP-SLEP Studio.', url: 'https://cjtorres86.github.io/serie-informes/', estado: 'activa', visibilidad: 'admin', orden: 1 },
+  { id: 'doc_marco_legal', moduloId: 'documentacion', nombre: 'Documentación Marco Legal', descripcion: 'Normas del proyecto de licencias médicas, con búsqueda y descarga de los textos oficiales.', url: 'https://cjtorres86.github.io/biblioteca-normativa/', estado: 'activa', visibilidad: 'admin', orden: 2 },
   { id: 'config_usuarios', moduloId: 'configuracion', nombre: 'Usuarios y accesos', descripcion: 'Personas, y a qué aplicaciones entra cada una.', url: null, estado: 'proximamente', visibilidad: 'admin', orden: 1 },
   { id: 'config_bitacora', moduloId: 'configuracion', nombre: 'Bitácora', descripcion: 'Registro de todo lo que hace cada persona en todas las aplicaciones.', url: null, estado: 'proximamente', visibilidad: 'superadmin', orden: 2 },
   { id: 'config_perfiles', moduloId: 'configuracion', nombre: 'Perfiles', descripcion: 'Perfiles y permisos.', url: null, estado: 'proximamente', visibilidad: 'superadmin', orden: 3 },
