@@ -33,11 +33,9 @@ export class HomeComponent implements OnInit {
 
   // Ventana de Configuración y recuadro del marco legal.
   readonly configAbierta = signal(false);
+  // Marco legal de Documentación: se ve mientras el mouse (o el foco del
+  // teclado) está sobre el módulo; en celular, con un toque.
   readonly marcoAbierto = signal(false);
-  // Con un clic el recuadro del marco legal queda fijo (para leerlo con
-  // calma, aunque el mouse salga); sin clic, solo se ve mientras el mouse
-  // está encima.
-  readonly marcoFijado = signal(false);
   private readonly zonaMarco = viewChild<ElementRef<HTMLElement>>('zonaMarco');
   private readonly botonConfig = viewChild<ElementRef<HTMLButtonElement>>('botonConfig');
   private readonly ventanaConfig = viewChild<ElementRef<HTMLElement>>('ventanaConfig');
@@ -48,25 +46,38 @@ export class HomeComponent implements OnInit {
     private readonly router: Router,
   ) {}
 
-  alternarMarco(): void {
-    const fijar = !this.marcoFijado();
-    this.marcoFijado.set(fijar);
-    this.marcoAbierto.set(fijar);
-  }
-
-  salirDelMarco(): void {
-    if (!this.marcoFijado()) this.marcoAbierto.set(false);
-  }
-
   private cerrarMarco(): void {
-    this.marcoFijado.set(false);
     this.marcoAbierto.set(false);
   }
 
-  // Un clic fuera del módulo Documentación cierra el recuadro fijado.
+  // Con el teclado: se cierra cuando el foco sale del módulo.
+  alSalirFoco(e: FocusEvent): void {
+    if (!this.zonaMarco()?.nativeElement.contains(e.relatedTarget as Node)) this.cerrarMarco();
+  }
+
+  // Con mouse, el marco legal se ve mientras el puntero está encima. Con el
+  // dedo no existe "pasar encima": ahí se abre y cierra con un toque. Se
+  // distinguen porque el teléfono, al tocar, también simula "mouse encima",
+  // y sin esta separación se abriría y cerraría en el mismo toque.
+  ultimoPuntero = '';
+
+  alEntrarPuntero(e: PointerEvent): void {
+    if (e.pointerType === 'mouse') this.marcoAbierto.set(true);
+  }
+
+  alSalirPuntero(e: PointerEvent): void {
+    if (e.pointerType === 'mouse') this.marcoAbierto.set(false);
+  }
+
+  alTocarModulo(e: MouseEvent): void {
+    if (this.ultimoPuntero === 'mouse' || (e.target as HTMLElement).closest('a')) return;
+    this.marcoAbierto.set(!this.marcoAbierto());
+  }
+
+  // Un toque fuera del módulo lo cierra.
   @HostListener('document:click', ['$event'])
   alHacerClic(e: MouseEvent): void {
-    if (this.marcoFijado() && !this.zonaMarco()?.nativeElement.contains(e.target as Node)) this.cerrarMarco();
+    if (this.marcoAbierto() && !this.zonaMarco()?.nativeElement.contains(e.target as Node)) this.cerrarMarco();
   }
 
   irInicio(): void {
