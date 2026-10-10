@@ -1,3 +1,4 @@
+import { BitacoraModule } from './bitacora/bitacora.module';
 import { PerfilesModule } from './perfiles/perfiles.module';
 import { IngresoUnicoModule } from './ingreso-unico/ingreso-unico.module';
 import { AdministracionModule } from './administracion/administracion.module';
@@ -19,6 +20,7 @@ import { dataSourceOptions } from './database/data-source';
     AdministracionModule,
     IngresoUnicoModule,
     PerfilesModule,
+    BitacoraModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: HttpExceptionFilter }],
 })

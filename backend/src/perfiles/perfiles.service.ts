@@ -1,3 +1,5 @@
+import { BitacoraService } from '../bitacora/bitacora.service';
+import { diferencias, listaDeCampos } from '../bitacora/diferencias';
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -23,6 +25,7 @@ export class PerfilesService {
     @InjectRepository(Acceso) private readonly accesos: Repository<Acceso>,
     @InjectRepository(Usuario) private readonly usuarios: Repository<Usuario>,
     private readonly notificador: NotificadorService,
+    private readonly bitacora: BitacoraService,
   ) {}
 
   // Todo lo que muestra la pantalla Perfiles: cada aplicación integrada con
@@ -62,6 +65,7 @@ export class PerfilesService {
       orden: 50,
     });
     await this.perfiles.save(perfil);
+    await this.bitacora.registrar(editor, 'perfil_creado', `Creó el perfil "${perfil.nombre}" en ${app.nombre}.`, { perfil });
     await this.notificador.avisarPerfiles(app.id);
     return perfil;
   }
@@ -70,6 +74,7 @@ export class PerfilesService {
     this.exigirSuperadmin(editor);
     const perfil = await this.buscar(id);
     const app = await this.app(perfil.aplicacionId);
+    const antes = { ...perfil, permisos: [...perfil.permisos], restricciones: { ...perfil.restricciones } };
     if (dto.nombre !== undefined) {
       await this.nombreLibre(app.id, dto.nombre.trim(), perfil.id);
       perfil.nombre = dto.nombre.trim();
@@ -80,6 +85,13 @@ export class PerfilesService {
     if (dto.restricciones) perfil.restricciones = dto.restricciones;
     perfil.permisos = this.validarPermisos(app, dto.permisos ?? perfil.permisos, perfil.restricciones);
     await this.perfiles.save(perfil);
+    const cambios = diferencias(antes as unknown as Record<string, unknown>, perfil as unknown as Record<string, unknown>, ['nombre', 'descripcion', 'color', 'permisos', 'restricciones']);
+    if (Object.keys(cambios).length) {
+      // Permisos: además de antes/después, cuáles se agregaron y cuáles se quitaron.
+      const agregados = perfil.permisos.filter((k) => !antes.permisos.includes(k));
+      const quitados = antes.permisos.filter((k) => !perfil.permisos.includes(k));
+      await this.bitacora.registrar(editor, 'perfil_editado', `Editó el perfil "${perfil.nombre}" de ${app.nombre}: cambió ${listaDeCampos(Object.keys(cambios))}.`, { cambios, permisosAgregados: agregados, permisosQuitados: quitados });
+    }
 
     // Si cambió la carga del perfil, "Puede cargar datos" de quienes lo
     // tienen se ajusta (ej. a "nunca" → todos quedan sin carga).
@@ -107,6 +119,7 @@ export class PerfilesService {
     const enUso = await this.accesos.count({ where: { rol: perfil.id } });
     if (enUso) throw new ConflictException(`No se puede eliminar "${perfil.nombre}": lo tiene${enUso === 1 ? '' : 'n'} ${enUso} persona${enUso === 1 ? '' : 's'}. Cámbiales el perfil primero.`);
     await this.perfiles.delete({ id: perfil.id });
+    await this.bitacora.registrar(editor, 'perfil_eliminado', `Eliminó el perfil "${perfil.nombre}".`, { perfil });
     await this.notificador.avisarPerfiles(perfil.aplicacionId);
     return { ok: true };
   }

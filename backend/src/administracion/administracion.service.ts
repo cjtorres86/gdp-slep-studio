@@ -1,3 +1,5 @@
+import { BitacoraService } from '../bitacora/bitacora.service';
+import { diferencias, listaDeCampos } from '../bitacora/diferencias';
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
@@ -38,6 +40,7 @@ export class AdministracionService {
     @InjectRepository(PerfilAplicacion) private readonly perfiles: Repository<PerfilAplicacion>,
     private readonly dataSource: DataSource,
     private readonly notificador: NotificadorService,
+    private readonly bitacora: BitacoraService,
   ) {}
 
   async listar() {
@@ -67,17 +70,27 @@ export class AdministracionService {
     this.exigir(motivoRechazo(editor, null, { rolPortal }));
     const persona = this.usuarios.create({ nombreParaMostrar: dto.nombreParaMostrar.trim(), rolPortal, activo: true });
     await this.aplicarCampos(persona, dto);
-    return this.guardarConAccesos(editor, persona, dto.accesos, []);
+    const creada = await this.guardarConAccesos(editor, persona, dto.accesos, []);
+    await this.bitacora.registrar(editor, 'persona_creada', `Creó a "${creada.nombreParaMostrar}"${creada.usuario ? ` (usuario "${creada.usuario}")` : ''}.`, { persona: creada, conClave: !!dto.contrasena });
+    return creada;
   }
 
   async editar(editor: Usuario, id: string, dto: EditarPersonaDto) {
     const persona = await this.buscar(id);
     this.exigir(motivoRechazo(editor, persona, { rolPortal: dto.rolPortal }));
+    const antes = vistaPersona(persona);
     if (dto.nombreParaMostrar) persona.nombreParaMostrar = dto.nombreParaMostrar.trim();
     if (dto.rolPortal) persona.rolPortal = dto.rolPortal;
     await this.aplicarCampos(persona, dto);
     const actuales = (persona.accesos ?? []).map((a) => ({ aplicacionId: a.aplicacionId, rol: a.rol, alcance: a.alcance, opciones: a.opciones ?? {} }));
-    return this.guardarConAccesos(editor, persona, dto.accesos, actuales);
+    const despues = await this.guardarConAccesos(editor, persona, dto.accesos, actuales);
+    // Bitácora: solo lo que cambió (antes → después). De la clave, solo que se cambió.
+    const cambios = diferencias(antes, despues, ['nombreParaMostrar', 'usuario', 'rut', 'rolPortal', 'accesos']);
+    const campos = Object.keys(cambios).concat(dto.contrasena ? ['clave'] : []);
+    if (campos.length) {
+      await this.bitacora.registrar(editor, 'persona_editada', `Editó a "${despues.nombreParaMostrar}": cambió ${listaDeCampos(campos)}.`, { cambios, claveCambiada: !!dto.contrasena });
+    }
+    return despues;
   }
 
   async cambiarEstado(editor: Usuario, id: string, activo: boolean) {
@@ -86,6 +99,7 @@ export class AdministracionService {
     persona.activo = activo;
     await this.usuarios.save(persona);
     const actualizada = await this.buscar(id);
+    await this.bitacora.registrar(editor, activo ? 'persona_activada' : 'persona_desactivada', `${activo ? 'Activó' : 'Desactivó'} a "${actualizada.nombreParaMostrar}".`, { personaId: actualizada.id });
     // Aviso inmediato a las aplicaciones integradas (sin hacer esperar al guardado).
     void this.notificador.avisarCambio(actualizada);
     return vistaPersona(actualizada);

@@ -45,6 +45,11 @@ export class AuthService {
   }
 
   logout(): void {
+    // Deja la salida registrada en la Bitácora (si el servidor no responde,
+    // se sale igual: la sesión vive en este navegador).
+    if (localStorage.getItem(CLAVE_TOKEN)) {
+      this.http.post(`${environment.apiUrl}/auth/salir`, {}).subscribe({ error: () => undefined });
+    }
     this.limpiar();
     this.router.navigate(['/login']);
   }

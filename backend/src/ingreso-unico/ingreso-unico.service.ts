@@ -1,3 +1,4 @@
+import { BitacoraService } from '../bitacora/bitacora.service';
 import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { createHash, randomBytes, timingSafeEqual } from 'crypto';
@@ -19,6 +20,7 @@ export class IngresoUnicoService {
     @InjectRepository(PaseIngreso) private readonly pases: Repository<PaseIngreso>,
     @InjectRepository(PerfilAplicacion) private readonly perfiles: Repository<PerfilAplicacion>,
     private readonly dataSource: DataSource,
+    private readonly bitacora: BitacoraService,
   ) {}
 
   // La persona (con sesión en el portal) pide entrar a una aplicación: se le
@@ -33,6 +35,7 @@ export class IngresoUnicoService {
     await this.pases.insert({ huella: huella(pase), usuarioId: persona.id, aplicacionId: app.id, venceEn: new Date(Date.now() + VIGENCIA_PASE_MS), usadoEn: null });
     // Limpieza de pases vencidos (no hace falta guardarlos).
     await this.pases.createQueryBuilder().delete().where('vence_en < :limite', { limite: new Date(Date.now() - 3600_000) }).execute();
+    await this.bitacora.registrar(persona, 'ingreso_aplicacion', `Entró a ${app.nombre} desde el portal.`, { aplicacion: app.id });
     return { url: `${app.url.replace(/\/$/, '')}/sso?pase=${encodeURIComponent(pase)}` };
   }
 
