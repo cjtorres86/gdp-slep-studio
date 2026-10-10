@@ -21,9 +21,9 @@ const APLICACIONES: Partial<Aplicacion>[] = [
   { id: 'licencias_medicas', moduloId: 'automatizacion', nombre: 'Licencias Médicas', descripcion: 'Tramitación automatizada de licencias médicas.', url: null, estado: 'proximamente', visibilidad: 'por_acceso', orden: 1 },
   { id: 'doc_proyecto', moduloId: 'documentacion', nombre: 'Documentación del Proyecto', descripcion: 'Serie de informes técnicos del proyecto GDP-SLEP Studio.', url: 'https://cjtorres86.github.io/serie-informes/', estado: 'activa', visibilidad: 'admin', orden: 1 },
   { id: 'doc_marco_legal', moduloId: 'documentacion', nombre: 'Documentación Marco Legal', descripcion: 'Normas del proyecto de licencias médicas, con búsqueda y descarga de los textos oficiales.', url: 'https://cjtorres86.github.io/biblioteca-normativa/', estado: 'activa', visibilidad: 'admin', orden: 2 },
-  { id: 'config_usuarios', moduloId: 'configuracion', nombre: 'Usuarios y accesos', descripcion: 'Personas, y a qué aplicaciones entra cada una.', url: null, estado: 'proximamente', visibilidad: 'admin', orden: 1 },
-  { id: 'config_bitacora', moduloId: 'configuracion', nombre: 'Bitácora', descripcion: 'Registro de todo lo que hace cada persona en todas las aplicaciones.', url: null, estado: 'proximamente', visibilidad: 'superadmin', orden: 2 },
-  { id: 'config_perfiles', moduloId: 'configuracion', nombre: 'Perfiles', descripcion: 'Perfiles y permisos.', url: null, estado: 'proximamente', visibilidad: 'superadmin', orden: 3 },
+  { id: 'config_usuarios', moduloId: 'configuracion', nombre: 'Usuarios y accesos', descripcion: 'Crea y administra las cuentas de las personas, y define a qué aplicaciones entra cada una y con qué rol.', url: null, estado: 'proximamente', visibilidad: 'admin', orden: 1 },
+  { id: 'config_perfiles', moduloId: 'configuracion', nombre: 'Perfiles', descripcion: 'Define los perfiles y qué puede hacer cada uno dentro de las aplicaciones.', url: null, estado: 'proximamente', visibilidad: 'admin', orden: 2 },
+  { id: 'config_bitacora', moduloId: 'configuracion', nombre: 'Bitácora', descripcion: 'Registro de quién hizo qué y cuándo en todas las aplicaciones, para auditoría y trazabilidad.', url: null, estado: 'proximamente', visibilidad: 'admin', orden: 3 },
 ];
 
 // Las 5 personas que hoy usan Avance de Sumarios, con las mismas claves.
