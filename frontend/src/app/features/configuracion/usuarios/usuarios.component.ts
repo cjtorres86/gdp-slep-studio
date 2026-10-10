@@ -7,7 +7,7 @@ import { forkJoin } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { atraparTab } from '../../../core/atrapar-tab';
 import { bloquearFondoMientras } from '../../../core/bloquear-fondo';
-import { AplicacionAsignable, OpcionManifiesto, PersonaAdmin, ReferenciasAdmin, RolPortal } from '../../../core/models';
+import { AplicacionAsignable, OpcionManifiesto, PerfilResumen, PersonaAdmin, ReferenciasAdmin, RolPortal } from '../../../core/models';
 
 // Acceso a UNA aplicación, tal como se edita en el formulario.
 interface AccesoEditable {
@@ -133,6 +133,19 @@ export class UsuariosComponent implements OnInit {
     return ROLES.find((r) => r.valor === rol)?.nombre ?? rol;
   }
 
+  // Perfiles de una aplicación (los administra Configuración → Perfiles).
+  perfilesDe(appId: string): PerfilResumen[] {
+    return this.referencias()?.perfiles.filter((p) => p.aplicacionId === appId) ?? [];
+  }
+
+  perfil(id: string): PerfilResumen | undefined {
+    return this.referencias()?.perfiles.find((p) => p.id === id);
+  }
+
+  nombrePerfil(id: string): string {
+    return id === 'Superadmin' ? 'Superadmin' : (this.perfil(id)?.nombre ?? id);
+  }
+
   nombreApp(id: string): string {
     return this.referencias()?.aplicaciones.find((a) => a.id === id)?.nombre ?? id;
   }
@@ -206,9 +219,12 @@ export class UsuariosComponent implements OnInit {
     const r: Record<string, AccesoEditable> = {};
     for (const app of this.referencias()?.aplicaciones ?? []) {
       const actual = p?.accesos.find((a) => a.aplicacionId === app.id);
-      const rol = actual?.rol && app.manifiesto.perfiles.includes(actual.rol) ? actual.rol : app.manifiesto.perfiles[app.manifiesto.perfiles.length - 1];
+      const perfiles = this.perfilesDe(app.id);
+      const existe = (id?: string) => !!id && perfiles.some((x) => x.id === id);
+      // Perfil por defecto al dar un acceso nuevo: Digitador si existe; si no, el primero.
+      const rol = existe(actual?.rol) ? actual!.rol : existe('perfil_digitador') ? 'perfil_digitador' : (perfiles[0]?.id ?? '');
       r[app.id] = {
-        activo: !!actual && app.manifiesto.perfiles.includes(actual.rol),
+        activo: !!actual && existe(actual.rol),
         rol,
         modoAlcance: !actual || actual.alcance.includes('todos') ? 'todos' : 'algunos',
         sleps: actual && !actual.alcance.includes('todos') ? [...actual.alcance] : [],
@@ -218,14 +234,16 @@ export class UsuariosComponent implements OnInit {
     return r;
   }
 
-  // Valor de cada opción para un perfil: el que la persona ya tenía (si es
-  // el mismo perfil) o el valor por defecto de ese perfil.
+  // "Puede cargar datos" para un perfil, según su carga: siempre / nunca
+  // (fijo), u opcional (lo que la persona ya tenía en ese perfil, o el valor
+  // por defecto del perfil).
   private opcionesPara(app: AplicacionAsignable, rol: string): Record<string, boolean> {
     const actual = this.original?.accesos.find((a) => a.aplicacionId === app.id);
+    const carga = this.perfil(rol)?.restricciones.carga ?? 'opcional_no';
     const o: Record<string, boolean> = {};
     for (const op of app.manifiesto.opciones) {
-      const porDefecto = op.porDefecto[rol] ?? false;
-      o[op.clave] = op.fijo?.includes(rol) ? porDefecto : actual?.rol === rol ? (actual.opciones[op.clave] ?? porDefecto) : porDefecto;
+      if (carga === 'siempre' || carga === 'nunca') o[op.clave] = carga === 'siempre';
+      else o[op.clave] = actual?.rol === rol ? (actual.opciones[op.clave] ?? carga === 'opcional_si') : carga === 'opcional_si';
     }
     return o;
   }
@@ -234,12 +252,21 @@ export class UsuariosComponent implements OnInit {
     const a = this.borrador()!.accesos[app.id];
     a.rol = rol;
     a.opciones = this.opcionesPara(app, rol);
+    // Si el perfil exige un SLEP específico, "Todos los SLEP" no corresponde.
+    if (this.perfil(rol)?.restricciones.exigeSlep) a.modoAlcance = 'algunos';
+  }
+
+  exigeSlep(rol: string): boolean {
+    return !!this.perfil(rol)?.restricciones.exigeSlep;
   }
 
   // ¿Se puede cambiar esta opción en este perfil? (Si no, se explica por qué.)
-  motivoBloqueo(op: OpcionManifiesto, rol: string): string {
-    if (op.fijo?.includes(rol)) return `El perfil ${rol} siempre tiene esta opción.`;
-    if (op.soloSuperadmin?.includes(rol) && !this.editorEsSuperadmin) return `Solo el Superadmin puede cambiarla en el perfil ${rol}.`;
+  motivoBloqueo(_op: OpcionManifiesto, rol: string): string {
+    const p = this.perfil(rol);
+    if (!p) return '';
+    if (p.restricciones.carga === 'siempre') return `El perfil ${p.nombre} siempre carga datos.`;
+    if (p.restricciones.carga === 'nunca') return `El perfil ${p.nombre} nunca carga datos.`;
+    if (p.restricciones.cargaSoloSuperadmin && !this.editorEsSuperadmin) return `Solo el Superadmin puede cambiarla en el perfil ${p.nombre}.`;
     return '';
   }
 

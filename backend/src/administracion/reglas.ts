@@ -1,4 +1,5 @@
 import { Aplicacion } from '../catalogo/entities/aplicacion.entity';
+import type { PerfilAplicacion } from '../perfiles/perfil-aplicacion.entity';
 import { RolPortal } from '../usuarios/entities/usuario.entity';
 
 // Reglas de "Usuarios y accesos", separadas como funciones puras para
@@ -52,14 +53,15 @@ export function motivoRechazo(
   return null;
 }
 
-// Valida y completa los accesos pedidos contra la ficha (manifiesto) de cada
-// aplicación. Lo que la aplicación no declara, no se acepta.
+// Valida y completa los accesos pedidos contra la ficha (manifiesto) y los
+// perfiles de cada aplicación. Lo que la aplicación no declara, no se acepta.
 export function normalizarAccesos(
   editor: Editor,
   pedidos: AccesoPedido[],
   actuales: AccesoNormalizado[],
   aplicaciones: Map<string, Aplicacion>,
   slepsOficiales: string[],
+  perfiles: PerfilAplicacion[],
 ): { accesos: AccesoNormalizado[] } | { error: string } {
   const vistos = new Set<string>();
   const resultado: AccesoNormalizado[] = [];
@@ -72,7 +74,8 @@ export function normalizarAccesos(
     vistos.add(app.id);
 
     const m = app.manifiesto;
-    if (!m.perfiles.includes(p.rol)) return { error: `"${p.rol}" no es un perfil de ${app.nombre}.` };
+    const perfil = perfiles.find((x) => x.aplicacionId === app.id && x.id === p.rol);
+    if (!perfil) return { error: `Ese perfil no existe en ${app.nombre}.` };
 
     // Alcance: "todos" o uno o más SLEP de la lista oficial (sin repetir y
     // en el orden oficial).
@@ -80,6 +83,7 @@ export function normalizarAccesos(
     if (m.alcance === 'slep' || m.alcance === 'slep_uno') {
       const pedido = (p.alcance ?? []).map((s) => s.trim()).filter(Boolean);
       if (pedido.includes('todos')) {
+        if (perfil.restricciones.exigeSlep) return { error: `El perfil ${perfil.nombre} exige un SLEP específico (no puede tener "Todos los SLEP").` };
         alcance = ['todos'];
       } else {
         if (!pedido.length) return { error: `Elige al menos un SLEP para ${app.nombre}.` };
@@ -92,25 +96,30 @@ export function normalizarAccesos(
       }
     }
 
-    // Opciones individuales (ej. "Puede cargar datos").
+    // Opción "Puede cargar datos": la decide la carga del perfil.
     const actual = actuales.find((a) => a.aplicacionId === app.id);
-    const mismoPerfil = actual?.rol === p.rol;
+    const valorActual = actual?.rol === p.rol ? actual?.opciones?.['cargar_datos'] : undefined;
     const opciones: Record<string, boolean> = {};
-    for (const op of m.opciones) {
-      const porDefecto = op.porDefecto[p.rol] ?? false;
-      const valorActual = mismoPerfil ? actual?.opciones?.[op.clave] : undefined;
-      if (op.fijo?.includes(p.rol)) {
-        opciones[op.clave] = porDefecto;
-      } else if (op.soloSuperadmin?.includes(p.rol) && editor.rolPortal !== 'superadmin') {
-        // Un Admin no puede cambiarla en este perfil: se conserva lo que había.
-        opciones[op.clave] = valorActual ?? porDefecto;
-      } else {
-        opciones[op.clave] = p.opciones?.[op.clave] ?? valorActual ?? porDefecto;
-      }
+    if (m.opciones.some((o) => o.clave === 'cargar_datos')) {
+      opciones['cargar_datos'] = valorCarga(perfil, editor, p.opciones?.['cargar_datos'], valorActual);
     }
-    resultado.push({ aplicacionId: app.id, rol: p.rol, alcance, opciones });
+    resultado.push({ aplicacionId: app.id, rol: perfil.id, alcance, opciones });
   }
   return { accesos: resultado };
+}
+
+// "Puede cargar datos" de una persona según la carga de su perfil:
+//  - siempre / nunca: fijo, no se puede cambiar persona por persona.
+//  - opcional: lo pedido; si no se pidió, lo que tenía; si no, el valor por
+//    defecto del perfil. Si el perfil dice que solo el Superadmin la cambia,
+//    un Admin no la puede mover.
+export function valorCarga(perfil: PerfilAplicacion, editor: Editor, pedido: boolean | undefined, actual: boolean | undefined): boolean {
+  const { carga, cargaSoloSuperadmin } = perfil.restricciones;
+  if (carga === 'siempre') return true;
+  if (carga === 'nunca') return false;
+  const porDefecto = carga === 'opcional_si';
+  if (cargaSoloSuperadmin && editor.rolPortal !== 'superadmin') return actual ?? porDefecto;
+  return pedido ?? actual ?? porDefecto;
 }
 
 // RUT chileno: se acepta con o sin puntos y se guarda como "12345678-9".

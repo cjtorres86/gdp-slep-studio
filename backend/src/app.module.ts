@@ -1,3 +1,4 @@
+import { PerfilesModule } from './perfiles/perfiles.module';
 import { IngresoUnicoModule } from './ingreso-unico/ingreso-unico.module';
 import { AdministracionModule } from './administracion/administracion.module';
 import { Module } from '@nestjs/common';
@@ -17,6 +18,7 @@ import { dataSourceOptions } from './database/data-source';
     CatalogoModule,
     AdministracionModule,
     IngresoUnicoModule,
+    PerfilesModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: HttpExceptionFilter }],
 })

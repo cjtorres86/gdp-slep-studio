@@ -1,0 +1,287 @@
+<main class="mx-auto w-full max-w-[1180px] px-6 py-10" [ngClass]="{ 'pb-28': hayCambios() }">
+  <nav aria-label="Ruta" class="text-[12px] text-slate-500">
+    <a routerLink="/" class="hover:text-dep-blue hover:underline">Inicio</a>
+    <span class="mx-1.5" aria-hidden="true">/</span><span>Configuración</span>
+    <span class="mx-1.5" aria-hidden="true">/</span><span class="font-semibold text-dep-navy" aria-current="page">Perfiles</span>
+  </nav>
+  <h1 class="mt-2 font-display text-[28px] font-extrabold leading-tight tracking-tight text-dep-navy">Perfiles</h1>
+  <p class="mt-1 max-w-2xl text-[14px] text-slate-600">
+    Qué puede hacer cada perfil. Los cambios en los perfiles de una aplicación rigen al instante para todas las personas que lo tienen.
+  </p>
+
+  @if (!puedeEditar() && estado() === 'listo') {
+    <p role="note" class="mt-4 rounded-xl border border-[#d9e0ee] bg-white px-4 py-2.5 text-[13px] text-slate-600">
+      Puedes revisar los perfiles. <strong class="text-dep-navy">Solo el Superadmin puede crearlos, modificarlos o eliminarlos.</strong>
+    </p>
+  }
+  @if (aviso()) {
+    <p role="status" class="mt-4 rounded-xl border border-[#cfe9b4] bg-[#f3fbe9] px-4 py-2.5 text-[13px] font-semibold text-[#3d6510]">{{ aviso() }}</p>
+  }
+
+  @switch (estado()) {
+    @case ('cargando') { <div class="mt-6 h-96 animate-pulse rounded-2xl border border-[#e3e8f1] bg-white" aria-busy="true" aria-label="Cargando perfiles"></div> }
+    @case ('error') {
+      <div role="alert" class="mt-6 max-w-xl rounded-2xl border border-[#ffc9d1] bg-[#fff1f3] p-6">
+        <p class="text-[14px] font-semibold text-[#b4112b]">{{ mensajeError() }}</p>
+        <button type="button" (click)="cargar()" class="mt-4 rounded-lg bg-dep-navy px-4 py-2 text-[13px] font-bold text-white hover:bg-dep-blue cursor-pointer">Reintentar</button>
+      </div>
+    }
+    @case ('listo') {
+      <div class="mt-6 grid gap-6 lg:grid-cols-[290px_minmax(0,1fr)]">
+        <!-- ============ Lista de perfiles ============ -->
+        <aside class="flex flex-col gap-4" aria-label="Lista de perfiles">
+          <section class="rounded-2xl border border-[#e3e8f1] bg-white p-3">
+            <p class="px-2 pb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">Portal · fijos</p>
+            <ul class="flex flex-col gap-1">
+              @for (p of perfilesPortal; track p.id) {
+                <li>
+                  <button type="button" (click)="elegirPortal(p.id)" [attr.aria-current]="seleccionPortal() === p.id ? 'true' : null"
+                          class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] transition cursor-pointer"
+                          [ngClass]="{ 'bg-[#eef4fb] font-bold text-dep-navy': seleccionPortal() === p.id, 'text-slate-700 hover:bg-[#f6f8fb]': seleccionPortal() !== p.id }">
+                    <span class="size-2.5 shrink-0 rounded-full" [style.background]="p.color" aria-hidden="true"></span>
+                    <span class="flex-1">{{ p.nombre }}</span>
+                    <svg class="size-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-label="Fijo"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+                  </button>
+                </li>
+              }
+            </ul>
+          </section>
+
+          @for (a of datos()?.aplicaciones ?? []; track a.id) {
+            <section class="rounded-2xl border border-[#e3e8f1] bg-white p-3">
+              <p class="px-2 pb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">{{ a.nombre }}</p>
+              <ul class="flex flex-col gap-1">
+                @for (p of a.perfiles; track p.id) {
+                  <li>
+                    <button type="button" (click)="elegirPerfil(p)" [attr.aria-current]="borrador()?.id === p.id ? 'true' : null"
+                            class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] transition cursor-pointer"
+                            [ngClass]="{ 'bg-[#eef4fb] font-bold text-dep-navy': borrador()?.id === p.id, 'text-slate-700 hover:bg-[#f6f8fb]': borrador()?.id !== p.id }">
+                      <span class="size-2.5 shrink-0 rounded-full" [style.background]="p.color" aria-hidden="true"></span>
+                      <span class="flex-1 truncate">{{ p.nombre }}</span>
+                      <span class="rounded-full bg-[#f1f4f9] px-2 py-px text-[10.5px] font-bold text-slate-500" [attr.aria-label]="p.personas + ' personas'">{{ p.personas }}</span>
+                    </button>
+                  </li>
+                }
+                @if (borrador() && !borrador()!.id && borrador()!.aplicacionId === a.id) {
+                  <li class="flex items-center gap-2.5 rounded-lg bg-[#eef4fb] px-2.5 py-2 text-[13px] font-bold text-dep-navy" aria-current="true">
+                    <span class="size-2.5 rounded-full" [style.background]="borrador()!.color" aria-hidden="true"></span>{{ borrador()!.nombre || 'Perfil nuevo' }}
+                  </li>
+                }
+              </ul>
+              @if (puedeEditar()) {
+                <button type="button" (click)="nuevo(a.id)" class="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-[#c9d3e3] px-3 py-2 text-[12.5px] font-bold text-dep-blue hover:bg-[#f6f8fb] cursor-pointer">
+                  <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                  Nuevo perfil
+                </button>
+              }
+            </section>
+          }
+        </aside>
+
+        <!-- ============ Detalle ============ -->
+        <section class="min-w-0" aria-live="polite">
+          @if (seleccionPortal(); as id) {
+            @let pp = perfilPortal(id)!;
+            <div class="rounded-2xl border border-[#e3e8f1] bg-white p-6">
+              <div class="flex items-center gap-3">
+                <span class="size-3.5 rounded-full" [style.background]="pp.color" aria-hidden="true"></span>
+                <h2 class="font-display text-[20px] font-extrabold text-dep-navy">{{ pp.nombre }}</h2>
+                <span class="rounded-full border border-[#d9e0ee] px-2.5 py-0.5 text-[10.5px] font-bold uppercase tracking-wider text-slate-500">Perfil del portal · fijo</span>
+              </div>
+              <p class="mt-1.5 text-[13.5px] text-slate-600">{{ pp.descripcion }}</p>
+              <p class="mt-5 text-[12px] font-bold uppercase tracking-wider text-slate-500">Puede</p>
+              <ul class="mt-2 flex flex-col gap-1.5">
+                @for (x of pp.puede; track x) {
+                  <li class="flex items-start gap-2 text-[13.5px] text-slate-700">
+                    <svg class="mt-0.5 size-4 shrink-0 text-[#4a7d12]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4 10-10" /></svg>{{ x }}
+                  </li>
+                }
+              </ul>
+              <p class="mt-5 rounded-lg bg-[#f6f8fb] px-3 py-2 text-[12px] text-slate-500">Los perfiles del portal no se modifican: las reglas de seguridad dependen de ellos (por ejemplo, que un Administrador no pueda tocar al Superadmin).</p>
+            </div>
+          } @else if (borrador()) {
+            @let b = borrador()!;
+            <div class="flex flex-col gap-4">
+              <!-- Encabezado -->
+              <div class="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-[#e3e8f1] bg-white p-5">
+                <div class="min-w-0">
+                  <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">{{ app()?.nombre }}</p>
+                  <h2 class="mt-0.5 flex items-center gap-2.5 font-display text-[20px] font-extrabold text-dep-navy">
+                    <span class="size-3.5 shrink-0 rounded-full" [style.background]="b.color" aria-hidden="true"></span>
+                    <span class="truncate">{{ b.nombre || 'Perfil nuevo' }}</span>
+                  </h2>
+                  @if (perfilActual(); as pa) {
+                    <p class="mt-1 text-[12.5px] text-slate-500">{{ pa.personas }} persona{{ pa.personas === 1 ? '' : 's' }} con este perfil</p>
+                  } @else {
+                    <p class="mt-1 text-[12.5px] text-slate-500">Todavía no está guardado.</p>
+                  }
+                </div>
+                @if (puedeEditar() && b.id) {
+                  <div class="flex gap-2">
+                    <button type="button" (click)="duplicar()" class="rounded-lg border border-[#d5dbe8] bg-white px-3 py-2 text-[12.5px] font-bold text-dep-navy hover:bg-dep-gray cursor-pointer">Duplicar</button>
+                    <button type="button" (click)="pedirEliminar()" [disabled]="(perfilActual()?.personas ?? 0) > 0"
+                            [attr.title]="(perfilActual()?.personas ?? 0) > 0 ? 'No se puede eliminar: hay personas con este perfil' : null"
+                            class="rounded-lg border border-[#ffc9d1] bg-white px-3 py-2 text-[12.5px] font-bold text-[#b4112b] hover:bg-[#fff1f3] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer">Eliminar</button>
+                  </div>
+                }
+              </div>
+
+              <!-- Características -->
+              <fieldset class="min-w-0 rounded-2xl border border-[#e3e8f1] bg-white p-5" [disabled]="!puedeEditar()">
+                <legend class="sr-only">Características</legend>
+                <p class="text-[14px] font-extrabold text-dep-navy" aria-hidden="true">Características</p>
+                <div class="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+                  <label class="flex flex-col gap-1 text-[11.5px] font-bold text-slate-600">
+                    Nombre
+                    <input name="nombre" [(ngModel)]="b.nombre" (ngModelChange)="marcar()" maxlength="60"
+                           class="rounded-lg border border-[#d5dbe8] bg-white px-3 py-2 text-[13.5px] font-normal text-slate-800 outline-none focus:border-dep-blue focus:ring-2 focus:ring-dep-blue/20 disabled:bg-[#f6f8fb]" />
+                  </label>
+                  <div class="flex flex-col gap-1">
+                    <span class="text-[11.5px] font-bold text-slate-600" id="etiqueta-color">Color</span>
+                    <div class="flex gap-1.5" role="radiogroup" aria-labelledby="etiqueta-color">
+                      @for (c of colores; track c) {
+                        <button type="button" role="radio" [attr.aria-checked]="b.color === c" [attr.aria-label]="'Color ' + c" (click)="b.color = c; marcar()" [disabled]="!puedeEditar()"
+                                class="size-7 rounded-full ring-offset-2 transition cursor-pointer disabled:cursor-not-allowed"
+                                [style.background]="c" [ngClass]="{ 'ring-2 ring-dep-navy': b.color === c }"></button>
+                      }
+                    </div>
+                  </div>
+                  <label class="flex flex-col gap-1 text-[11.5px] font-bold text-slate-600 sm:col-span-2">
+                    Descripción
+                    <input name="descripcion" [(ngModel)]="b.descripcion" (ngModelChange)="marcar()" maxlength="200" placeholder="Para qué sirve este perfil, en una línea"
+                           class="rounded-lg border border-[#d5dbe8] bg-white px-3 py-2 text-[13.5px] font-normal text-slate-800 outline-none focus:border-dep-blue focus:ring-2 focus:ring-dep-blue/20 disabled:bg-[#f6f8fb]" />
+                  </label>
+                </div>
+              </fieldset>
+
+              <!-- Permisos, por grupo -->
+              @for (g of grupos(); track g.nombre) {
+                <section class="rounded-2xl border border-[#e3e8f1] bg-white p-5" [attr.aria-labelledby]="'grupo-' + $index">
+                  <div class="flex items-baseline justify-between gap-3">
+                    <p class="text-[14px] font-extrabold text-dep-navy" [id]="'grupo-' + $index">{{ g.nombre }}</p>
+                    <span class="text-[11.5px] text-slate-500">{{ g.permisos.filter(tienePermisoEnBorrador(b)).length }} de {{ g.permisos.length }}</span>
+                  </div>
+                  <ul class="mt-2 divide-y divide-[#eef1f6]">
+                    @for (c of g.permisos; track c.clave) {
+                      @let bloqueo = motivoBloqueo(c);
+                      @let activo = tiene(c.clave);
+                      <li class="flex items-start justify-between gap-4 py-3">
+                        <div class="min-w-0">
+                          <p class="flex flex-wrap items-center gap-2 text-[13.5px] font-bold text-slate-800" [id]="'permiso-' + c.clave">
+                            {{ c.etiqueta }}
+                            @if (c.sensible) {
+                              <span class="inline-flex items-center gap-1 rounded-full bg-[#fff4e5] px-2 py-px text-[10.5px] font-bold text-[#a14e00]">
+                                <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /></svg>
+                                Sensible
+                              </span>
+                            }
+                          </p>
+                          <p class="mt-0.5 text-[12.5px] leading-snug text-slate-500">{{ c.descripcion }}</p>
+                          @if (bloqueo && !activo) { <p class="mt-1 text-[11.5px] font-semibold text-slate-400">{{ bloqueo }}</p> }
+                        </div>
+                        <button type="button" role="switch" [attr.aria-checked]="activo" [attr.aria-labelledby]="'permiso-' + c.clave"
+                                (click)="alternar(c)" [disabled]="!puedeEditar() || (!!bloqueo && !activo)"
+                                class="relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-45"
+                                [ngClass]="{ 'bg-dep-blue': activo && !c.sensible, 'bg-[#c2410c]': activo && c.sensible, 'bg-[#cdd5e6]': !activo }">
+                          <span class="inline-block size-5 rounded-full bg-white shadow transition" [ngClass]="{ 'translate-x-5.5': activo, 'translate-x-0.5': !activo }"></span>
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                </section>
+              }
+
+              <!-- Restricciones -->
+              <section class="rounded-2xl border border-[#e3e8f1] bg-white p-5" aria-labelledby="titulo-restricciones">
+                <p class="text-[14px] font-extrabold text-dep-navy" id="titulo-restricciones">Restricciones</p>
+
+                <p class="mt-3 text-[13.5px] font-bold text-slate-800" id="titulo-carga">Carga de datos</p>
+                <p class="text-[12.5px] text-slate-500">Si las personas con este perfil pueden guardar valores en los formularios.</p>
+                <div class="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-4" role="radiogroup" aria-labelledby="titulo-carga">
+                  @for (m of modosCarga; track m.valor) {
+                    <button type="button" role="radio" [attr.aria-checked]="b.restricciones.carga === m.valor" (click)="cambiarCarga(m.valor)" [disabled]="!puedeEditar()"
+                            class="rounded-xl border px-3 py-2.5 text-left transition cursor-pointer disabled:cursor-not-allowed"
+                            [ngClass]="{ 'border-dep-blue bg-[#eef4fb] shadow-[0_0_0_3px_rgba(0,107,185,0.12)]': b.restricciones.carga === m.valor, 'border-[#d9e0ee] bg-white hover:bg-[#f9fafc]': b.restricciones.carga !== m.valor }">
+                      <span class="block text-[13px] font-bold text-dep-navy">{{ m.nombre }}</span>
+                      <span class="mt-0.5 block text-[11.5px] leading-snug text-slate-500">{{ m.detalle }}</span>
+                    </button>
+                  }
+                </div>
+
+                <ul class="mt-4 divide-y divide-[#eef1f6] border-t border-[#eef1f6]">
+                  <li class="flex items-start justify-between gap-4 py-3">
+                    <div>
+                      <p class="text-[13.5px] font-bold text-slate-800" id="r-exige">Exige un SLEP específico</p>
+                      <p class="mt-0.5 text-[12.5px] text-slate-500">Las personas con este perfil no pueden tener "Todos los SLEP".</p>
+                    </div>
+                    <button type="button" role="switch" [attr.aria-checked]="b.restricciones.exigeSlep" aria-labelledby="r-exige" (click)="alternarRestriccion('exigeSlep')" [disabled]="!puedeEditar()"
+                            class="relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-45"
+                            [ngClass]="{ 'bg-dep-blue': b.restricciones.exigeSlep, 'bg-[#cdd5e6]': !b.restricciones.exigeSlep }">
+                      <span class="inline-block size-5 rounded-full bg-white shadow transition" [ngClass]="{ 'translate-x-5.5': b.restricciones.exigeSlep, 'translate-x-0.5': !b.restricciones.exigeSlep }"></span>
+                    </button>
+                  </li>
+                  <li class="flex items-start justify-between gap-4 py-3">
+                    <div>
+                      <p class="text-[13.5px] font-bold text-slate-800" id="r-solo">Solo el Superadmin cambia la carga de estas personas</p>
+                      <p class="mt-0.5 text-[12.5px] text-slate-500">
+                        {{ b.restricciones.carga.startsWith('opcional') ? 'Un Administrador no podrá activar ni quitar la carga persona por persona.' : 'Aplica solo cuando la carga es opcional.' }}
+                      </p>
+                    </div>
+                    <button type="button" role="switch" [attr.aria-checked]="b.restricciones.cargaSoloSuperadmin" aria-labelledby="r-solo" (click)="alternarRestriccion('cargaSoloSuperadmin')"
+                            [disabled]="!puedeEditar() || !b.restricciones.carga.startsWith('opcional')"
+                            class="relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-45"
+                            [ngClass]="{ 'bg-dep-blue': b.restricciones.cargaSoloSuperadmin, 'bg-[#cdd5e6]': !b.restricciones.cargaSoloSuperadmin }">
+                      <span class="inline-block size-5 rounded-full bg-white shadow transition" [ngClass]="{ 'translate-x-5.5': b.restricciones.cargaSoloSuperadmin, 'translate-x-0.5': !b.restricciones.cargaSoloSuperadmin }"></span>
+                    </button>
+                  </li>
+                </ul>
+              </section>
+
+              @if (errorEditor() && !hayCambios()) {
+                <p role="alert" class="rounded-xl border border-[#ffc9d1] bg-[#fff1f3] px-4 py-2.5 text-[13px] font-semibold text-[#b4112b]">{{ errorEditor() }}</p>
+              }
+            </div>
+          }
+        </section>
+      </div>
+    }
+  }
+</main>
+
+<!-- Barra fija: aparece solo si hay cambios sin guardar. -->
+@if (hayCambios() && puedeEditar()) {
+  <div class="fixed inset-x-0 bottom-0 z-40 border-t border-white/70 bg-white/80 backdrop-blur-xl shadow-[0_-10px_30px_-18px_rgba(37,48,107,0.5)]" role="region" aria-label="Cambios sin guardar">
+    <div class="mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-3 px-6 py-3">
+      <div class="min-w-0">
+        <p class="text-[13px] font-bold text-dep-navy">{{ borrador()?.id ? 'Tienes cambios sin guardar' : 'Perfil nuevo sin guardar' }}</p>
+        @if (errorEditor()) { <p role="alert" class="text-[12.5px] font-semibold text-[#b4112b]">{{ errorEditor() }}</p> }
+        @else if (borrador()?.id) { <p class="text-[12px] text-slate-500">Al guardar, rigen al instante para las personas con este perfil.</p> }
+      </div>
+      <div class="flex gap-2">
+        <button type="button" (click)="descartar()" class="rounded-lg border border-[#d5dbe8] bg-white px-4 py-2 text-[13px] font-bold text-dep-navy hover:bg-dep-gray cursor-pointer">Descartar</button>
+        <button type="button" (click)="guardar()" [disabled]="guardando()" class="rounded-lg bg-dep-navy px-5 py-2 text-[13px] font-bold text-white hover:bg-dep-blue disabled:opacity-60 cursor-pointer">
+          {{ guardando() ? 'Guardando…' : borrador()?.id ? 'Guardar cambios' : 'Crear perfil' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Confirmación (descartar cambios / eliminar) -->
+@if (confirmar(); as c) {
+  <div class="fixed inset-0 z-50 grid place-items-center p-4" (click)="confirmar.set(null)">
+    <div class="absolute inset-0 bg-[#25306B]/25 backdrop-blur-[6px]" aria-hidden="true"></div>
+    <section #ventanaConfirmar role="alertdialog" aria-modal="true" aria-labelledby="titulo-conf" aria-describedby="texto-conf" (click)="$event.stopPropagation()"
+             class="vidrio relative w-full max-w-[440px] rounded-3xl p-6">
+      <h2 id="titulo-conf" class="font-display text-[19px] font-extrabold text-dep-navy">{{ c.titulo }}</h2>
+      <p id="texto-conf" class="mt-2 text-[13px] leading-relaxed text-slate-600">{{ c.texto }}</p>
+      <div class="mt-5 flex justify-end gap-2">
+        <button data-cancelar type="button" (click)="confirmar.set(null)" class="rounded-lg border border-[#d5dbe8] bg-white px-4 py-2 text-[13px] font-bold text-dep-navy hover:bg-dep-gray cursor-pointer">Cancelar</button>
+        <button type="button" (click)="aceptarConfirmacion()" class="rounded-lg px-4 py-2 text-[13px] font-bold text-white cursor-pointer"
+                [ngClass]="{ 'bg-[#c8102e] hover:bg-[#a10d25]': c.tipo === 'eliminar', 'bg-dep-navy hover:bg-dep-blue': c.tipo !== 'eliminar' }">
+          {{ c.tipo === 'eliminar' ? 'Eliminar' : 'Descartar cambios' }}
+        </button>
+      </div>
+    </section>
+  </div>
+}

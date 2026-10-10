@@ -53,25 +53,64 @@ export interface PersonaAdmin {
   accesos: AccesoPersona[];
 }
 
+// ---------- Perfiles de las aplicaciones integradas ----------
+
+export type ModoCarga = 'siempre' | 'opcional_si' | 'opcional_no' | 'nunca';
+
+export interface RestriccionesPerfil {
+  exigeSlep: boolean;
+  carga: ModoCarga;
+  cargaSoloSuperadmin: boolean;
+}
+
+export interface PerfilResumen {
+  id: string;
+  aplicacionId: string;
+  nombre: string;
+  color: string;
+  restricciones: RestriccionesPerfil;
+}
+
+export interface PermisoCatalogo {
+  clave: string;
+  grupo: string;
+  tipo: 'vista' | 'accion';
+  etiqueta: string;
+  descripcion: string;
+  sensible?: boolean;
+  requiere?: string[];
+  requiereCarga?: boolean;
+}
+
+export interface PerfilCompleto extends PerfilResumen {
+  descripcion: string;
+  permisos: string[];
+  orden: number;
+  personas: number;
+}
+
+export interface PerfilesAdmin {
+  puedeEditar: boolean;
+  aplicaciones: { id: string; nombre: string; catalogo: PermisoCatalogo[]; perfiles: PerfilCompleto[] }[];
+}
+
 // La "ficha" que cada aplicación integrada entrega al portal.
 export interface OpcionManifiesto {
   clave: string;
   etiqueta: string;
   descripcion: string;
-  porDefecto: Record<string, boolean>;
-  fijo?: string[];
-  soloSuperadmin?: string[];
 }
 
 export interface AplicacionAsignable {
   id: string;
   nombre: string;
   // slep: uno o más SLEP · slep_uno: un solo SLEP (o todos) · ninguno
-  manifiesto: { perfiles: string[]; alcance: 'slep' | 'slep_uno' | 'ninguno'; opciones: OpcionManifiesto[] };
+  manifiesto: { permisos: PermisoCatalogo[]; alcance: 'slep' | 'slep_uno' | 'ninguno'; opciones: OpcionManifiesto[] };
 }
 
 export interface ReferenciasAdmin {
   aplicaciones: AplicacionAsignable[];
+  perfiles: PerfilResumen[];
   sleps: string[];
   editor: { id: string; rolPortal: RolPortal };
 }

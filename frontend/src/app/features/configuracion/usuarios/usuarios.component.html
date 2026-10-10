@@ -126,7 +126,7 @@
                         @for (a of p.accesos; track a.aplicacionId) {
                           <li class="text-[12px] leading-snug">
                             <span class="font-semibold text-slate-700">{{ nombreApp(a.aplicacionId) }}</span>
-                            <span class="text-slate-500"> · {{ a.rol }} · {{ textoAlcance(a.alcance) }}</span>
+                            <span class="text-slate-500"> · {{ nombrePerfil(a.rol) }} · {{ textoAlcance(a.alcance) }}</span>
                             @if (a.opciones['cargar_datos']) {
                               <span class="ml-1 rounded bg-[#eaf6dc] px-1.5 py-px text-[10px] font-bold text-[#47710f]">Carga datos</span>
                             }
@@ -281,10 +281,11 @@
                   <!-- Perfil -->
                   <p class="mt-3 text-[11.5px] font-bold text-slate-600" [id]="'perfil-' + app.id">Perfil</p>
                   <div class="mt-1 flex flex-wrap gap-1.5" role="group" [attr.aria-labelledby]="'perfil-' + app.id">
-                    @for (perfil of app.manifiesto.perfiles; track perfil) {
+                    @for (pf of perfilesDe(app.id); track pf.id) {
+                      @let perfil = pf.id;
                       <button type="button" (click)="cambiarPerfil(app, perfil)" [attr.aria-pressed]="a.rol === perfil"
                               class="rounded-lg border px-3 py-1.5 text-[12.5px] font-bold transition cursor-pointer"
-        [ngClass]="{ 'border-dep-blue': a.rol === perfil, 'bg-dep-blue': a.rol === perfil, 'text-white': a.rol === perfil, 'border-[#d5dbe8]': a.rol !== perfil, 'bg-white': a.rol !== perfil, 'text-dep-navy': a.rol !== perfil }">{{ perfil }}</button>
+        [ngClass]="{ 'border-dep-blue': a.rol === perfil, 'bg-dep-blue': a.rol === perfil, 'text-white': a.rol === perfil, 'border-[#d5dbe8]': a.rol !== perfil, 'bg-white': a.rol !== perfil, 'text-dep-navy': a.rol !== perfil }">{{ pf.nombre }}</button>
                     }
                   </div>
 
@@ -293,7 +294,11 @@
                     <fieldset class="min-w-0 mt-3">
                       <legend class="text-[11.5px] font-bold text-slate-600">SLEP</legend>
                       <div class="mt-1 flex flex-wrap gap-4 text-[12.5px] text-slate-700">
+                        @if (!exigeSlep(a.rol)) {
                         <label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" [name]="'alcance-' + app.id" value="todos" [(ngModel)]="a.modoAlcance" class="accent-[#006BB9]" /> Todos los SLEP</label>
+                        } @else {
+                        <span class="text-[12px] text-slate-500">Este perfil exige un SLEP específico.</span>
+                        }
                         <label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" [name]="'alcance-' + app.id" value="algunos" [(ngModel)]="a.modoAlcance" class="accent-[#006BB9]" /> {{ app.manifiesto.alcance === 'slep_uno' ? 'Un SLEP' : 'Algunos SLEP' }}</label>
                       </div>
                       @if (a.modoAlcance === 'algunos') {

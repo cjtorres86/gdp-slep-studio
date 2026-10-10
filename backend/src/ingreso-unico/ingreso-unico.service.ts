@@ -6,6 +6,7 @@ import { Aplicacion } from '../catalogo/entities/aplicacion.entity';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { Identidad, identidadPara, variableClave } from './identidad';
 import { PaseIngreso } from './pase-ingreso.entity';
+import { PerfilAplicacion } from '../perfiles/perfil-aplicacion.entity';
 
 const VIGENCIA_PASE_MS = 60_000;
 const huella = (pase: string) => createHash('sha256').update(pase).digest('hex');
@@ -16,6 +17,7 @@ export class IngresoUnicoService {
     @InjectRepository(Aplicacion) private readonly aplicaciones: Repository<Aplicacion>,
     @InjectRepository(Usuario) private readonly usuarios: Repository<Usuario>,
     @InjectRepository(PaseIngreso) private readonly pases: Repository<PaseIngreso>,
+    @InjectRepository(PerfilAplicacion) private readonly perfiles: Repository<PerfilAplicacion>,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -55,7 +57,7 @@ export class IngresoUnicoService {
     const registro = await this.pases.findOne({ where: { huella: h } });
     const persona = registro ? await this.usuarios.findOne({ where: { id: registro.usuarioId }, relations: { accesos: true } }) : null;
     if (!persona || !persona.activo) throw rechazo;
-    const identidad = identidadPara(persona, app);
+    const identidad = identidadPara(persona, app, await this.perfiles.find({ where: { aplicacionId: app.id } }));
     if (!identidad.tieneAcceso) throw new ForbiddenException('Esta persona ya no tiene acceso a la aplicación.');
     return identidad;
   }

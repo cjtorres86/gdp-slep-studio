@@ -11,6 +11,11 @@ export const routes: Routes = [
     children: [
       { path: '', loadComponent: () => import('./features/home/home.component').then((m) => m.HomeComponent) },
       {
+        path: 'configuracion/perfiles',
+        canActivate: [administradorGuard],
+        loadComponent: () => import('./features/configuracion/perfiles/perfiles.component').then((m) => m.PerfilesComponent),
+      },
+      {
         path: 'configuracion/usuarios',
         canActivate: [administradorGuard],
         loadComponent: () => import('./features/configuracion/usuarios/usuarios.component').then((m) => m.UsuariosComponent),

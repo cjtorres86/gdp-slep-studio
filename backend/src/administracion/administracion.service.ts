@@ -9,6 +9,7 @@ import { CrearPersonaDto, EditarPersonaDto } from './administracion.dto';
 import { AccesoNormalizado, motivoRechazo, normalizarAccesos, normalizarRut } from './reglas';
 import { Slep } from './slep.entity';
 import { NotificadorService } from '../ingreso-unico/notificador.service';
+import { PerfilAplicacion } from '../perfiles/perfil-aplicacion.entity';
 
 // Lo que ve la pantalla "Usuarios y accesos" de cada persona. Nunca el hash.
 function vistaPersona(u: Usuario) {
@@ -34,6 +35,7 @@ export class AdministracionService {
     @InjectRepository(Usuario) private readonly usuarios: Repository<Usuario>,
     @InjectRepository(Aplicacion) private readonly aplicaciones: Repository<Aplicacion>,
     @InjectRepository(Slep) private readonly sleps: Repository<Slep>,
+    @InjectRepository(PerfilAplicacion) private readonly perfiles: Repository<PerfilAplicacion>,
     private readonly dataSource: DataSource,
     private readonly notificador: NotificadorService,
   ) {}
@@ -51,6 +53,10 @@ export class AdministracionService {
       aplicaciones: apps
         .filter((a) => a.estado === 'activa' && a.visibilidad === 'por_acceso' && a.manifiesto)
         .map((a) => ({ id: a.id, nombre: a.nombre, manifiesto: a.manifiesto })),
+      // Perfiles de cada aplicación (para elegirlos al dar un acceso).
+      perfiles: (await this.perfiles.find({ order: { orden: 'ASC', nombre: 'ASC' } })).map((p) => ({
+        id: p.id, aplicacionId: p.aplicacionId, nombre: p.nombre, color: p.color, restricciones: p.restricciones,
+      })),
       sleps: (await this.sleps.find({ order: { orden: 'ASC' } })).map((s) => s.nombre),
       editor: { id: editor.id, rolPortal: editor.rolPortal },
     };
@@ -130,7 +136,7 @@ export class AdministracionService {
     if (pedidos && persona.rolPortal !== 'superadmin') {
       const apps = new Map((await this.aplicaciones.find()).map((a) => [a.id, a]));
       const sleps = (await this.sleps.find({ order: { orden: 'ASC' } })).map((s) => s.nombre);
-      const r = normalizarAccesos(editor, pedidos, actuales, apps, sleps);
+      const r = normalizarAccesos(editor, pedidos, actuales, apps, sleps, await this.perfiles.find());
       if ('error' in r) throw new BadRequestException(r.error);
       accesos = r.accesos;
     }

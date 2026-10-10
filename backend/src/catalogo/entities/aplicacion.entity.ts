@@ -1,6 +1,7 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryColumn } from 'typeorm';
 import { Modulo } from './modulo.entity';
 import { Acceso } from './acceso.entity';
+import type { PermisoCatalogo } from '../../perfiles/catalogo-sumarios';
 
 export type EstadoAplicacion = 'activa' | 'proximamente';
 
@@ -12,18 +13,16 @@ export type EstadoAplicacion = 'activa' | 'proximamente';
 export type VisibilidadAplicacion = 'por_acceso' | 'admin' | 'superadmin';
 
 // La "ficha" que cada aplicación integrada entrega al portal (contrato de
-// integración): qué perfiles tiene, si su alcance es por SLEP y qué opciones
-// individuales existen. El portal administra lo que la aplicación declara.
+// integración): su catálogo de permisos, si su alcance es por SLEP y qué
+// opciones individuales existen. Sus PERFILES viven en la tabla
+// perfiles_aplicacion (se administran en Configuración → Perfiles).
 export interface OpcionManifiesto {
-  clave: string;
+  clave: string; // hoy solo "cargar_datos", regida por la carga de cada perfil
   etiqueta: string;
   descripcion: string;
-  porDefecto: Record<string, boolean>; // por perfil
-  fijo?: string[]; // perfiles a los que no se les puede cambiar
-  soloSuperadmin?: string[]; // perfiles a los que solo el Superadmin se la cambia
 }
 export interface Manifiesto {
-  perfiles: string[];
+  permisos: PermisoCatalogo[];
   // slep: uno o más SLEP · slep_uno: un solo SLEP (o todos) · ninguno
   alcance: 'slep' | 'slep_uno' | 'ninguno';
   opciones: OpcionManifiesto[];
