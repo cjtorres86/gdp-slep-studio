@@ -78,3 +78,13 @@ describe('normalizarRut', () => {
     expect(normalizarRut('hola')).toBeNull();
   });
 });
+
+describe('normalizarAccesos — aplicaciones con un solo SLEP por persona', () => {
+  const unSlep = { ...sumarios, id: 'uno', manifiesto: { ...sumarios.manifiesto!, alcance: 'slep_uno' } } as unknown as Aplicacion;
+  const appsUno = new Map([[unSlep.id, unSlep]]);
+  it('acepta un SLEP o "todos", y rechaza dos o más', () => {
+    expect(normalizarAccesos(admin, [{ aplicacionId: 'uno', rol: 'Digitador', alcance: ['Barrancas'] }], [], appsUno, SLEPS)).toHaveProperty('accesos');
+    expect(normalizarAccesos(admin, [{ aplicacionId: 'uno', rol: 'Validador', alcance: ['todos'] }], [], appsUno, SLEPS)).toHaveProperty('accesos');
+    expect(normalizarAccesos(admin, [{ aplicacionId: 'uno', rol: 'Digitador', alcance: ['Barrancas', 'Aconcagua'] }], [], appsUno, SLEPS)).toHaveProperty('error');
+  });
+});

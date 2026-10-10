@@ -6,9 +6,10 @@ import { Usuario } from '../usuarios/entities/usuario.entity';
 import { AdministracionController } from './administracion.controller';
 import { AdministracionService } from './administracion.service';
 import { Slep } from './slep.entity';
+import { IngresoUnicoModule } from '../ingreso-unico/ingreso-unico.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Usuario, Aplicacion, Acceso, Slep])],
+  imports: [TypeOrmModule.forFeature([Usuario, Aplicacion, Acceso, Slep]), IngresoUnicoModule],
   controllers: [AdministracionController],
   providers: [AdministracionService],
 })

@@ -20,6 +20,8 @@ export interface AplicacionVista {
   url: string | null;
   rol: string | null;
   alcance: string[] | null;
+  // Aplicación integrada: se entra con un pase del portal, sin volver a escribir la clave.
+  ingresoUnico: boolean;
 }
 
 export interface ModuloVista {
@@ -64,7 +66,8 @@ export interface OpcionManifiesto {
 export interface AplicacionAsignable {
   id: string;
   nombre: string;
-  manifiesto: { perfiles: string[]; alcance: 'slep' | 'ninguno'; opciones: OpcionManifiesto[] };
+  // slep: uno o más SLEP · slep_uno: un solo SLEP (o todos) · ninguno
+  manifiesto: { perfiles: string[]; alcance: 'slep' | 'slep_uno' | 'ninguno'; opciones: OpcionManifiesto[] };
 }
 
 export interface ReferenciasAdmin {

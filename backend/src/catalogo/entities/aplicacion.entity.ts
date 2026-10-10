@@ -24,7 +24,8 @@ export interface OpcionManifiesto {
 }
 export interface Manifiesto {
   perfiles: string[];
-  alcance: 'slep' | 'ninguno';
+  // slep: uno o más SLEP · slep_uno: un solo SLEP (o todos) · ninguno
+  alcance: 'slep' | 'slep_uno' | 'ninguno';
   opciones: OpcionManifiesto[];
 }
 
@@ -61,6 +62,11 @@ export class Aplicacion {
 
   @Column({ type: 'json', nullable: true })
   manifiesto: Manifiesto | null;
+
+  // Dirección del SERVIDOR de la aplicación integrada, para avisarle al
+  // instante cuando una persona cambia o se desactiva.
+  @Column({ name: 'url_integracion', type: 'varchar', length: 300, nullable: true })
+  urlIntegracion: string | null;
 
   @OneToMany(() => Acceso, (a) => a.aplicacion)
   accesos: Acceso[];

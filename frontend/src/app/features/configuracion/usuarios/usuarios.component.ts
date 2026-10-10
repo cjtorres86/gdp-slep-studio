@@ -275,8 +275,12 @@ export class UsuariosComponent implements OnInit {
     for (const app of this.referencias()?.aplicaciones ?? []) {
       const a = b.accesos[app.id];
       if (!a?.activo) continue;
-      if (app.manifiesto.alcance === 'slep' && a.modoAlcance === 'algunos' && !a.sleps.length) {
-        return this.errorEditor.set(`Elige al menos un SLEP para ${app.nombre}, o marca "Todos los SLEP".`);
+      if (app.manifiesto.alcance !== 'ninguno' && a.modoAlcance === 'algunos' && !a.sleps.length) {
+        return this.errorEditor.set(
+          app.manifiesto.alcance === 'slep_uno'
+            ? `Elige el SLEP de ${app.nombre}, o marca "Todos los SLEP".`
+            : `Elige al menos un SLEP para ${app.nombre}, o marca "Todos los SLEP".`,
+        );
       }
       accesos.push({ aplicacionId: app.id, rol: a.rol, alcance: a.modoAlcance === 'todos' ? ['todos'] : a.sleps, opciones: a.opciones });
     }

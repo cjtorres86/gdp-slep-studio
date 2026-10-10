@@ -12,6 +12,7 @@ export interface AplicacionVista {
   // Rol de la persona DENTRO de esa aplicación (null si no aplica).
   rol: string | null;
   alcance: string[] | null;
+  ingresoUnico: boolean;
 }
 
 export interface ModuloVista {
@@ -58,6 +59,8 @@ export function construirCatalogo(
       url: app.estado === 'activa' ? app.url : null,
       rol: acceso?.rol ?? (esSuperadmin && app.visibilidad === 'por_acceso' && app.estado === 'activa' ? 'Superadmin' : null),
       alcance: acceso?.alcance ?? null,
+      // Aplicación integrada: se entra con un pase del portal, sin volver a escribir la clave.
+      ingresoUnico: app.estado === 'activa' && !!app.manifiesto,
     };
   };
 

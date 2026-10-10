@@ -19,7 +19,7 @@ const URL_SUMARIOS = 'https://proyecto1-omega-eight.vercel.app';
 // y la opción individual "Puede cargar datos". Igual a la migración 1791300000000.
 const MANIFIESTO_SUMARIOS: Manifiesto = {
   perfiles: ['Admin', 'Validador', 'Digitador'],
-  alcance: 'slep',
+  alcance: 'slep_uno',
   opciones: [
     {
       clave: 'cargar_datos',
@@ -33,7 +33,7 @@ const MANIFIESTO_SUMARIOS: Manifiesto = {
 };
 
 const APLICACIONES: Partial<Aplicacion>[] = [
-  { id: 'reporte_avance_sumarios', moduloId: 'gestor_formularios', nombre: 'Reporte Avance de Sumarios', descripcion: 'Seguimiento mensual de sumarios administrativos de los 36 SLEP.', url: URL_SUMARIOS, estado: 'activa', visibilidad: 'por_acceso', orden: 1, manifiesto: MANIFIESTO_SUMARIOS },
+  { id: 'reporte_avance_sumarios', moduloId: 'gestor_formularios', nombre: 'Reporte Avance de Sumarios', descripcion: 'Seguimiento mensual de sumarios administrativos de los 36 SLEP.', url: URL_SUMARIOS, estado: 'activa', visibilidad: 'por_acceso', orden: 1, manifiesto: MANIFIESTO_SUMARIOS, urlIntegracion: 'https://proyecto1-backend-ux0w.onrender.com' },
   { id: 'reporte_circular_30', moduloId: 'gestor_formularios', nombre: 'Reporte Circular 30', descripcion: 'Reporte de la Circular 30 para los SLEP.', url: null, estado: 'proximamente', visibilidad: 'por_acceso', orden: 2 },
   { id: 'licencias_medicas', moduloId: 'automatizacion', nombre: 'Licencias Médicas', descripcion: 'Tramitación automatizada de licencias médicas.', url: null, estado: 'proximamente', visibilidad: 'por_acceso', orden: 1 },
   { id: 'doc_proyecto', moduloId: 'documentacion', nombre: 'Documentación del Proyecto', descripcion: 'Serie de informes técnicos del proyecto GDP-SLEP Studio.', url: 'https://cjtorres86.github.io/serie-informes/', estado: 'activa', visibilidad: 'admin', orden: 1 },

@@ -8,6 +8,7 @@ import { Usuario } from '../usuarios/entities/usuario.entity';
 import { CrearPersonaDto, EditarPersonaDto } from './administracion.dto';
 import { AccesoNormalizado, motivoRechazo, normalizarAccesos, normalizarRut } from './reglas';
 import { Slep } from './slep.entity';
+import { NotificadorService } from '../ingreso-unico/notificador.service';
 
 // Lo que ve la pantalla "Usuarios y accesos" de cada persona. Nunca el hash.
 function vistaPersona(u: Usuario) {
@@ -34,6 +35,7 @@ export class AdministracionService {
     @InjectRepository(Aplicacion) private readonly aplicaciones: Repository<Aplicacion>,
     @InjectRepository(Slep) private readonly sleps: Repository<Slep>,
     private readonly dataSource: DataSource,
+    private readonly notificador: NotificadorService,
   ) {}
 
   async listar() {
@@ -77,7 +79,10 @@ export class AdministracionService {
     this.exigir(motivoRechazo(editor, persona, { activo }));
     persona.activo = activo;
     await this.usuarios.save(persona);
-    return vistaPersona(await this.buscar(id));
+    const actualizada = await this.buscar(id);
+    // Aviso inmediato a las aplicaciones integradas (sin hacer esperar al guardado).
+    void this.notificador.avisarCambio(actualizada);
+    return vistaPersona(actualizada);
   }
 
   // ---------------------------------------------------------------------
@@ -138,6 +143,8 @@ export class AdministracionService {
       }
       return guardada.id;
     });
-    return vistaPersona(await this.buscar(id));
+    const actualizada = await this.buscar(id);
+    void this.notificador.avisarCambio(actualizada);
+    return vistaPersona(actualizada);
   }
 }

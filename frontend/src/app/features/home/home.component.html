@@ -5,6 +5,9 @@
         Hola, {{ auth.usuario()?.nombreParaMostrar }}
       </h1>
       <p class="mt-1.5 text-[14px] text-slate-600">Selecciona la aplicación a la que quieres ingresar.</p>
+      @if (errorApertura()) {
+        <p role="alert" class="mt-4 max-w-2xl rounded-xl border border-[#ffc9d1] bg-[#fff1f3] px-4 py-2.5 text-[13px] font-semibold text-[#b4112b]">{{ errorApertura() }}</p>
+      }
     </div>
 
     @switch (estado()) {
@@ -174,6 +177,7 @@
           @if (a.estado === 'activa' && a.url) {
             <a
               [href]="a.url"
+              (click)="entrar($event, a)"
               target="_blank"
               rel="noopener"
               class="group block rounded-xl border border-[#d9e0ee] bg-white p-4 transition hover:-translate-y-0.5 hover:shadow-[0_10px_22px_-12px_rgba(37,48,107,0.5)]"

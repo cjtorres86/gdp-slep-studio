@@ -1,3 +1,4 @@
+import { IngresoUnicoModule } from './ingreso-unico/ingreso-unico.module';
 import { AdministracionModule } from './administracion/administracion.module';
 import { Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
@@ -15,6 +16,7 @@ import { dataSourceOptions } from './database/data-source';
     AuthModule,
     CatalogoModule,
     AdministracionModule,
+    IngresoUnicoModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: HttpExceptionFilter }],
 })

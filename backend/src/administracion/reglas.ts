@@ -77,7 +77,7 @@ export function normalizarAccesos(
     // Alcance: "todos" o uno o más SLEP de la lista oficial (sin repetir y
     // en el orden oficial).
     let alcance: string[] = ['todos'];
-    if (m.alcance === 'slep') {
+    if (m.alcance === 'slep' || m.alcance === 'slep_uno') {
       const pedido = (p.alcance ?? []).map((s) => s.trim()).filter(Boolean);
       if (pedido.includes('todos')) {
         alcance = ['todos'];
@@ -86,6 +86,9 @@ export function normalizarAccesos(
         const desconocido = pedido.find((s) => !slepsOficiales.includes(s));
         if (desconocido) return { error: `"${desconocido}" no es un SLEP de la lista oficial.` };
         alcance = slepsOficiales.filter((s) => pedido.includes(s));
+        if (m.alcance === 'slep_uno' && alcance.length > 1) {
+          return { error: `${app.nombre} admite un solo SLEP por persona (o "Todos los SLEP").` };
+        }
       }
     }
 
