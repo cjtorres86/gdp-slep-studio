@@ -5,6 +5,7 @@ import { AuthService } from '../../core/auth.service';
 import { CatalogoService } from '../../core/catalogo.service';
 import { RolPortal } from '../../core/models';
 import { atraparTab } from '../../core/atrapar-tab';
+import { bloquearFondoMientras } from '../../core/bloquear-fondo';
 
 const ETIQUETA_ROL: Record<RolPortal, string> = {
   superadmin: 'Superadmin',
@@ -27,7 +28,9 @@ export class LayoutComponent implements OnInit {
   private readonly botonConfig = viewChild<ElementRef<HTMLButtonElement>>('botonConfig');
   private readonly ventanaConfig = viewChild<ElementRef<HTMLElement>>('ventanaConfig');
 
-  constructor(readonly auth: AuthService) {}
+  constructor(readonly auth: AuthService) {
+    bloquearFondoMientras(this.configAbierta);
+  }
 
   ngOnInit(): void {
     this.catalogo.cargar();

@@ -3,6 +3,7 @@ import { Component, ElementRef, HostListener, computed, inject, signal, viewChil
 import { AuthService } from '../../core/auth.service';
 import { CatalogoService } from '../../core/catalogo.service';
 import { atraparTab } from '../../core/atrapar-tab';
+import { bloquearFondoMientras } from '../../core/bloquear-fondo';
 
 // Pantalla de inicio: los módulos de trabajo y, aparte (separado por una
 // línea), Documentación. Configuración vive en la barra superior (marco
@@ -26,7 +27,9 @@ export class HomeComponent {
   private readonly ventanaMarco = viewChild<ElementRef<HTMLElement>>('ventanaMarco');
   private disparadorMarco: HTMLElement | null = null;
 
-  constructor(readonly auth: AuthService) {}
+  constructor(readonly auth: AuthService) {
+    bloquearFondoMientras(this.marcoAbierto);
+  }
 
   cargar(): void {
     this.catalogo.cargar();

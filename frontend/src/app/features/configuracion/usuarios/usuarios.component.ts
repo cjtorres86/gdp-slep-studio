@@ -6,6 +6,7 @@ import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { atraparTab } from '../../../core/atrapar-tab';
+import { bloquearFondoMientras } from '../../../core/bloquear-fondo';
 import { AplicacionAsignable, OpcionManifiesto, PersonaAdmin, ReferenciasAdmin, RolPortal } from '../../../core/models';
 
 // Acceso a UNA aplicación, tal como se edita en el formulario.
@@ -95,7 +96,9 @@ export class UsuariosComponent implements OnInit {
   private readonly ventanaConfirmar = viewChild<ElementRef<HTMLElement>>('ventanaConfirmar');
   private disparador: HTMLElement | null = null;
 
-  constructor(private readonly http: HttpClient) {}
+  constructor(private readonly http: HttpClient) {
+    bloquearFondoMientras(this.borrador, this.confirmar);
+  }
 
   ngOnInit(): void {
     this.cargar();
