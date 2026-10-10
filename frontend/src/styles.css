@@ -128,13 +128,3 @@ a.opcion-vidrio:focus-visible {
   .grilla-modulos { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .grilla-modulos.con-documentacion { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto minmax(0, 1fr); }
 }
-/* Marco legal de Documentación: se "desenrolla" hacia abajo desde el
-   borde del módulo, como una extensión suya. */
-.despliegue-marco { animation: desplegar-marco 0.2s ease-out; }
-@keyframes desplegar-marco {
-  from { clip-path: inset(0 0 100% 0); opacity: 0.6; }
-  to   { clip-path: inset(0 0 0 0); opacity: 1; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .despliegue-marco { animation: none; }
-}

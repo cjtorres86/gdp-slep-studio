@@ -103,56 +103,7 @@
             @if (documentacion(); as d) {
               <div class="separador-documentacion md:col-span-2 lg:col-span-1" aria-hidden="true"></div>
 
-              <!-- Documentación: al posicionarse sobre el módulo (o al recorrerlo con
-                   Tab, o con un toque en celular) se despliega hacia abajo el marco
-                   legal, del mismo ancho, como una extensión del módulo. -->
-              <div
-                #zonaMarco
-                class="relative flex flex-col"
-                (pointerenter)="alEntrarPuntero($event)"
-                (pointerleave)="alSalirPuntero($event)"
-                (pointerdown)="ultimoPuntero = $event.pointerType"
-                (focusin)="marcoAbierto.set(true)"
-                (focusout)="alSalirFoco($event)"
-                (click)="alTocarModulo($event)"
-                [attr.aria-describedby]="marcoAbierto() ? 'marco-legal' : null"
-              >
-                <ng-container *ngTemplateOutlet="tarjeta; context: { $implicit: d }" />
-
-                @if (marcoAbierto()) {
-                  <div
-                    id="marco-legal"
-                    role="tooltip"
-                    class="despliegue-marco absolute inset-x-0 top-full z-30 -mt-4 rounded-b-2xl border border-t-0 border-[#e3e8f1] bg-white px-5 pb-5 pt-7 text-[12px] leading-relaxed text-slate-600 shadow-[0_18px_30px_-16px_rgba(37,48,107,0.4)]"
-                  >
-                    <div class="mb-3 flex items-center gap-2 border-t border-dashed border-[#bfe8f8] pt-3">
-                      <svg class="size-4 shrink-0 text-[#1d9fd0]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="M12 3 4 6v5c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6z" /><path d="m9 12 2 2 4-4" />
-                      </svg>
-                      <p class="font-display text-[12.5px] font-extrabold uppercase tracking-wide text-dep-navy">Marco legal</p>
-                    </div>
-
-                    <p>
-                      No hay una ley que lo diga literalmente, pero sí un
-                      <strong class="text-dep-navy">marco normativo que exige registros y documentación de los sistemas</strong>.
-                      Este módulo reúne esa evidencia.
-                    </p>
-
-                    <p class="mt-3 font-bold text-dep-navy">Ley 21.180 · Transformación Digital del Estado</p>
-                    <p class="mt-0.5">Procedimientos en soporte electrónico. Sus normas técnicas (D.O. 17-08-2023) exigen:</p>
-                    <ul class="mt-1 space-y-0.5 pl-4 [list-style:disc] marker:text-[#3abff0]">
-                      <li><strong class="text-slate-700">DS 7/2023:</strong> política de seguridad de la información.</li>
-                      <li><strong class="text-slate-700">DS 10/2023:</strong> metadatos y registros de trazabilidad.</li>
-                      <li><strong class="text-slate-700">DS 11/2023:</strong> niveles de servicio y continuidad operacional.</li>
-                    </ul>
-
-                    <p class="mt-3 font-bold text-dep-navy">Ley 21.663 · Marco de Ciberseguridad</p>
-                    <p class="mt-0.5">Desde marzo de 2025: registro de riesgos, política de incidentes y auditoría documentada.</p>
-
-                    <p class="mt-3 text-[10.5px] text-slate-400">Referencia informativa. Para uso formal, validar con el equipo jurídico.</p>
-                  </div>
-                }
-              </div>
+              <ng-container *ngTemplateOutlet="tarjeta; context: { $implicit: d }" />
             }
           </div>
         }
@@ -235,6 +186,93 @@
       </section>
     </div>
   }
+
+  @if (marcoAbierto()) {
+    <div class="fixed inset-0 z-50 grid place-items-center overflow-y-auto p-4" (click)="cerrarMarco()">
+      <div class="absolute inset-0 bg-[#25306B]/25 backdrop-blur-[6px]" aria-hidden="true"></div>
+      <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+        <div class="absolute left-[16%] top-[18%] size-72 rounded-full bg-[#3abff0]/35 blur-3xl"></div>
+        <div class="absolute bottom-[16%] right-[18%] size-72 rounded-full bg-[#1f84ec]/30 blur-3xl"></div>
+        <div class="absolute bottom-[34%] left-[40%] size-56 rounded-full bg-[#90d039]/20 blur-3xl"></div>
+      </div>
+
+      <section
+        #ventanaMarco
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="titulo-marco"
+        (click)="$event.stopPropagation()"
+        class="vidrio relative my-auto w-full max-w-[600px] rounded-3xl p-6 sm:p-7"
+      >
+        <header class="flex items-start justify-between gap-4">
+          <div>
+            <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-[#1d9fd0]">Respaldo normativo</p>
+            <h2 id="titulo-marco" class="mt-1 font-display text-[22px] font-extrabold tracking-tight text-dep-navy">Marco legal de la documentación</h2>
+          </div>
+          <button
+            data-cerrar
+            type="button"
+            (click)="cerrarMarco()"
+            aria-label="Cerrar marco legal"
+            class="grid size-9 shrink-0 place-items-center rounded-full border border-white/70 bg-white/50 text-dep-navy transition hover:bg-white cursor-pointer"
+          >
+            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+          </button>
+        </header>
+
+        <p class="mt-3 text-[13.5px] leading-relaxed text-slate-700">
+          <strong class="text-dep-navy">Marco normativo que exige registros y documentación de los sistemas.</strong>
+          Este módulo reúne esa evidencia: la <strong class="text-dep-navy">Documentación del Proyecto</strong> respalda cómo se
+          construyó y funciona el sistema, y la <strong class="text-dep-navy">Documentación Marco Legal</strong>, en qué normas se apoya
+          cada proceso.
+        </p>
+
+        <ol class="mt-5 flex flex-col gap-3">
+          <li class="opcion-vidrio rounded-2xl p-4">
+            <div class="flex items-baseline justify-between gap-3">
+              <p class="text-[14px] font-bold text-dep-navy">Ley 21.180 · Transformación Digital del Estado</p>
+              <a href="https://www.bcn.cl/leychile/navegar?idNorma=1138479" target="_blank" rel="noopener" class="shrink-0 text-[11.5px] font-bold text-dep-blue hover:underline">Texto oficial ↗</a>
+            </div>
+            <p class="mt-1 text-[12.5px] leading-relaxed text-slate-600">
+              Obliga a los órganos del Estado a llevar sus procedimientos administrativos a soporte electrónico. Sus normas técnicas se
+              publicaron en el Diario Oficial el 17 de agosto de 2023.
+            </p>
+          </li>
+
+          <li class="opcion-vidrio rounded-2xl p-4">
+            <p class="text-[14px] font-bold text-dep-navy">Normas técnicas de la Ley 21.180</p>
+            <ul class="mt-2 flex flex-col gap-2 text-[12.5px] leading-relaxed text-slate-600">
+              <li class="flex items-baseline justify-between gap-3">
+                <span><strong class="text-slate-700">DS 7/2023 · Seguridad de la Información y Ciberseguridad:</strong> una política de seguridad que proteja la infraestructura y los datos.</span>
+                <a href="https://www.diariooficial.interior.gob.cl/publicaciones/2023/08/17/43629/01/2361371.pdf" target="_blank" rel="noopener" class="shrink-0 text-[11.5px] font-bold text-dep-blue hover:underline">Texto oficial ↗</a>
+              </li>
+              <li class="flex items-baseline justify-between gap-3">
+                <span><strong class="text-slate-700">DS 10/2023 · Documentos y Expedientes:</strong> estándares, metadatos y registros de trazabilidad.</span>
+                <a href="https://www.diariooficial.interior.gob.cl/publicaciones/2023/08/17/43629/01/2361374.pdf" target="_blank" rel="noopener" class="shrink-0 text-[11.5px] font-bold text-dep-blue hover:underline">Texto oficial ↗</a>
+              </li>
+              <li class="flex items-baseline justify-between gap-3">
+                <span><strong class="text-slate-700">DS 11/2023 · Calidad y Funcionamiento:</strong> niveles de servicio, resiliencia y continuidad operacional.</span>
+                <a href="https://www.diariooficial.interior.gob.cl/publicaciones/2023/08/17/43629/01/2361375.pdf" target="_blank" rel="noopener" class="shrink-0 text-[11.5px] font-bold text-dep-blue hover:underline">Texto oficial ↗</a>
+              </li>
+            </ul>
+          </li>
+
+          <li class="opcion-vidrio rounded-2xl p-4">
+            <div class="flex items-baseline justify-between gap-3">
+              <p class="text-[14px] font-bold text-dep-navy">Ley 21.663 · Marco de Ciberseguridad</p>
+              <a href="https://www.bcn.cl/leychile/navegar?i=1202434" target="_blank" rel="noopener" class="shrink-0 text-[11.5px] font-bold text-dep-blue hover:underline">Texto oficial ↗</a>
+            </div>
+            <p class="mt-1 text-[12.5px] leading-relaxed text-slate-600">
+              Fija obligaciones de ciberseguridad para los organismos del Estado. Desde marzo de 2025 se espera evidencia como un registro
+              de riesgos, una política de incidentes y una auditoría documentada.
+            </p>
+          </li>
+        </ol>
+
+        <p class="mt-4 text-[11px] text-slate-500">Referencia informativa. Para citarla en documentos formales, validar con el equipo jurídico.</p>
+      </section>
+    </div>
+  }
 </div>
 
 <!-- Tarjeta de un módulo (la misma para los módulos principales y para Documentación). -->
@@ -310,5 +348,31 @@
         </li>
       }
     </ul>
+
+    <!-- Respaldo normativo: siempre visible al pie del módulo Documentación. -->
+    @if (m.id === 'documentacion') {
+      <footer class="mx-4 mb-4 mt-auto border-t border-dashed border-[#bfe8f8] pt-3">
+        <p class="flex items-start gap-2 text-[11.5px] font-bold leading-snug text-dep-navy">
+          <svg class="mt-px size-4 shrink-0 text-[#1d9fd0]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3 4 6v5c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6z" /><path d="m9 12 2 2 4-4" />
+          </svg>
+          Marco normativo que exige registros y documentación de los sistemas
+        </p>
+        <ul class="mt-2 flex flex-wrap gap-1.5" aria-label="Normas que respaldan este módulo">
+          @for (n of ['Ley 21.180', 'DS 7, 10 y 11/2023', 'Ley 21.663']; track n) {
+            <li class="rounded-full bg-[#eefaff] px-2.5 py-0.5 text-[10.5px] font-bold text-[#0a6d93]">{{ n }}</li>
+          }
+        </ul>
+        <button
+          type="button"
+          (click)="abrirMarco($event)"
+          aria-haspopup="dialog"
+          class="mt-2.5 inline-flex items-center gap-1 text-[12px] font-bold text-dep-blue underline-offset-2 hover:underline cursor-pointer"
+        >
+          Ver marco legal
+          <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        </button>
+      </footer>
+    }
   </section>
 </ng-template>

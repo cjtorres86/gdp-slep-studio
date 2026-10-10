@@ -33,10 +33,10 @@ export class HomeComponent implements OnInit {
 
   // Ventana de Configuración y recuadro del marco legal.
   readonly configAbierta = signal(false);
-  // Marco legal de Documentación: se ve mientras el mouse (o el foco del
-  // teclado) está sobre el módulo; en celular, con un toque.
+  // Ventana "Marco legal" (se abre desde la franja de Documentación).
   readonly marcoAbierto = signal(false);
-  private readonly zonaMarco = viewChild<ElementRef<HTMLElement>>('zonaMarco');
+  private readonly ventanaMarco = viewChild<ElementRef<HTMLElement>>('ventanaMarco');
+  private disparadorMarco: HTMLElement | null = null;
   private readonly botonConfig = viewChild<ElementRef<HTMLButtonElement>>('botonConfig');
   private readonly ventanaConfig = viewChild<ElementRef<HTMLElement>>('ventanaConfig');
 
@@ -46,49 +46,26 @@ export class HomeComponent implements OnInit {
     private readonly router: Router,
   ) {}
 
-  private cerrarMarco(): void {
+  abrirMarco(e: Event): void {
+    this.disparadorMarco = e.currentTarget as HTMLElement;
+    this.marcoAbierto.set(true);
+    setTimeout(() => this.ventanaMarco()?.nativeElement.querySelector<HTMLElement>('[data-cerrar]')?.focus());
+  }
+
+  cerrarMarco(): void {
+    if (!this.marcoAbierto()) return;
     this.marcoAbierto.set(false);
-  }
-
-  // Con el teclado: se cierra cuando el foco sale del módulo.
-  alSalirFoco(e: FocusEvent): void {
-    if (!this.zonaMarco()?.nativeElement.contains(e.relatedTarget as Node)) this.cerrarMarco();
-  }
-
-  // Con mouse, el marco legal se ve mientras el puntero está encima. Con el
-  // dedo no existe "pasar encima": ahí se abre y cierra con un toque. Se
-  // distinguen porque el teléfono, al tocar, también simula "mouse encima",
-  // y sin esta separación se abriría y cerraría en el mismo toque.
-  ultimoPuntero = '';
-
-  alEntrarPuntero(e: PointerEvent): void {
-    if (e.pointerType === 'mouse') this.marcoAbierto.set(true);
-  }
-
-  alSalirPuntero(e: PointerEvent): void {
-    if (e.pointerType === 'mouse') this.marcoAbierto.set(false);
-  }
-
-  alTocarModulo(e: MouseEvent): void {
-    if (this.ultimoPuntero === 'mouse' || (e.target as HTMLElement).closest('a')) return;
-    this.marcoAbierto.set(!this.marcoAbierto());
-  }
-
-  // Un toque fuera del módulo lo cierra.
-  @HostListener('document:click', ['$event'])
-  alHacerClic(e: MouseEvent): void {
-    if (this.marcoAbierto() && !this.zonaMarco()?.nativeElement.contains(e.target as Node)) this.cerrarMarco();
+    setTimeout(() => this.disparadorMarco?.focus());
   }
 
   irInicio(): void {
     this.configAbierta.set(false);
-    this.cerrarMarco();
+    this.marcoAbierto.set(false);
     this.router.navigateByUrl('/');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   abrirConfig(): void {
-    this.cerrarMarco();
     this.configAbierta.set(true);
     // Al abrir, el foco entra a la ventana (para teclado y lectores de pantalla).
     setTimeout(() => this.ventanaConfig()?.nativeElement.querySelector<HTMLElement>('[data-cerrar]')?.focus());
@@ -108,10 +85,9 @@ export class HomeComponent implements OnInit {
       else this.cerrarMarco();
       return;
     }
-    // Con la ventana abierta, Tab recorre solo lo que hay dentro de ella.
-    if (e.key === 'Tab' && this.configAbierta()) {
-      const ventana = this.ventanaConfig()?.nativeElement;
-      if (!ventana) return;
+    // Con una ventana abierta, Tab recorre solo lo que hay dentro de ella.
+    const ventana = this.configAbierta() ? this.ventanaConfig()?.nativeElement : this.marcoAbierto() ? this.ventanaMarco()?.nativeElement : undefined;
+    if (e.key === 'Tab' && ventana) {
       const enfocables = Array.from(ventana.querySelectorAll<HTMLElement>('a[href], button:not([disabled])'));
       if (!enfocables.length) return;
       const primero = enfocables[0];
