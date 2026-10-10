@@ -1,3 +1,4 @@
+import { AdministracionModule } from './administracion/administracion.module';
 import { Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
@@ -13,6 +14,7 @@ import { dataSourceOptions } from './database/data-source';
     TypeOrmModule.forRoot(dataSourceOptions),
     AuthModule,
     CatalogoModule,
+    AdministracionModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: HttpExceptionFilter }],
 })

@@ -11,6 +11,23 @@ export type EstadoAplicacion = 'activa' | 'proximamente';
 //  - superadmin: solo Superadmin.
 export type VisibilidadAplicacion = 'por_acceso' | 'admin' | 'superadmin';
 
+// La "ficha" que cada aplicación integrada entrega al portal (contrato de
+// integración): qué perfiles tiene, si su alcance es por SLEP y qué opciones
+// individuales existen. El portal administra lo que la aplicación declara.
+export interface OpcionManifiesto {
+  clave: string;
+  etiqueta: string;
+  descripcion: string;
+  porDefecto: Record<string, boolean>; // por perfil
+  fijo?: string[]; // perfiles a los que no se les puede cambiar
+  soloSuperadmin?: string[]; // perfiles a los que solo el Superadmin se la cambia
+}
+export interface Manifiesto {
+  perfiles: string[];
+  alcance: 'slep' | 'ninguno';
+  opciones: OpcionManifiesto[];
+}
+
 @Entity('aplicaciones')
 export class Aplicacion {
   @PrimaryColumn({ type: 'varchar', length: 60 })
@@ -41,6 +58,9 @@ export class Aplicacion {
 
   @Column({ type: 'int' })
   orden: number;
+
+  @Column({ type: 'json', nullable: true })
+  manifiesto: Manifiesto | null;
 
   @OneToMany(() => Acceso, (a) => a.aplicacion)
   accesos: Acceso[];

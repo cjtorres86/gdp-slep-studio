@@ -12,7 +12,8 @@
     "typeorm": "typeorm-ts-node-commonjs",
     "migration:run": "typeorm-ts-node-commonjs migration:run -d src/database/data-source.ts",
     "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/database/data-source.ts",
-    "seed": "ts-node -r tsconfig-paths/register src/database/seeds/seed-portal.ts"
+    "seed": "ts-node -r tsconfig-paths/register src/database/seeds/seed-portal.ts",
+    "importar:sumarios": "ts-node -r tsconfig-paths/register src/database/seeds/importar-desde-sumarios.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.0",
@@ -48,10 +49,16 @@
     "typescript": "~5.5.4"
   },
   "jest": {
-    "moduleFileExtensions": ["js", "json", "ts"],
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
-    "transform": { "^.+\\.ts$": "ts-jest" },
+    "transform": {
+      "^.+\\.ts$": "ts-jest"
+    },
     "testEnvironment": "node"
   }
 }

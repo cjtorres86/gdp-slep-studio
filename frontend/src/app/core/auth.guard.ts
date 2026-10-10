@@ -18,3 +18,16 @@ export const publicoGuard: CanActivateFn = () => {
     .restaurarSesion()
     .pipe(map((ok) => (ok ? router.createUrlTree(['/']) : true)));
 };
+
+// Solo Admin y Superadmin del portal (ej. "Usuarios y accesos"). La
+// verificación que de verdad importa la hace el backend en cada petición.
+export const administradorGuard: CanActivateFn = () => {
+  const router = inject(Router);
+  const auth = inject(AuthService);
+  return auth.restaurarSesion().pipe(
+    map((ok) => {
+      const rol = auth.usuario()?.rolPortal;
+      return ok && (rol === 'admin' || rol === 'superadmin') ? true : router.createUrlTree(['/']);
+    }),
+  );
+};

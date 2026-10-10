@@ -1,7 +1,7 @@
 import * as bcrypt from 'bcryptjs';
 import dataSource from '../data-source';
 import { Acceso } from '../../catalogo/entities/acceso.entity';
-import { Aplicacion } from '../../catalogo/entities/aplicacion.entity';
+import { Aplicacion, Manifiesto } from '../../catalogo/entities/aplicacion.entity';
 import { Modulo } from '../../catalogo/entities/modulo.entity';
 import { RolPortal, Usuario } from '../../usuarios/entities/usuario.entity';
 
@@ -15,13 +15,30 @@ const MODULOS: Modulo[] = [
 
 const URL_SUMARIOS = 'https://proyecto1-omega-eight.vercel.app';
 
+// Ficha de Sumarios (contrato de integración): sus perfiles, alcance por SLEP
+// y la opción individual "Puede cargar datos". Igual a la migración 1791300000000.
+const MANIFIESTO_SUMARIOS: Manifiesto = {
+  perfiles: ['Admin', 'Validador', 'Digitador'],
+  alcance: 'slep',
+  opciones: [
+    {
+      clave: 'cargar_datos',
+      etiqueta: 'Puede cargar datos',
+      descripcion: 'Guardar valores y cargar archivos Excel en los formularios.',
+      porDefecto: { Admin: true, Validador: false, Digitador: true },
+      fijo: ['Digitador'],
+      soloSuperadmin: ['Admin'],
+    },
+  ],
+};
+
 const APLICACIONES: Partial<Aplicacion>[] = [
-  { id: 'reporte_avance_sumarios', moduloId: 'gestor_formularios', nombre: 'Reporte Avance de Sumarios', descripcion: 'Seguimiento mensual de sumarios administrativos de los 36 SLEP.', url: URL_SUMARIOS, estado: 'activa', visibilidad: 'por_acceso', orden: 1 },
+  { id: 'reporte_avance_sumarios', moduloId: 'gestor_formularios', nombre: 'Reporte Avance de Sumarios', descripcion: 'Seguimiento mensual de sumarios administrativos de los 36 SLEP.', url: URL_SUMARIOS, estado: 'activa', visibilidad: 'por_acceso', orden: 1, manifiesto: MANIFIESTO_SUMARIOS },
   { id: 'reporte_circular_30', moduloId: 'gestor_formularios', nombre: 'Reporte Circular 30', descripcion: 'Reporte de la Circular 30 para los SLEP.', url: null, estado: 'proximamente', visibilidad: 'por_acceso', orden: 2 },
   { id: 'licencias_medicas', moduloId: 'automatizacion', nombre: 'Licencias Médicas', descripcion: 'Tramitación automatizada de licencias médicas.', url: null, estado: 'proximamente', visibilidad: 'por_acceso', orden: 1 },
   { id: 'doc_proyecto', moduloId: 'documentacion', nombre: 'Documentación del Proyecto', descripcion: 'Serie de informes técnicos del proyecto GDP-SLEP Studio.', url: 'https://cjtorres86.github.io/serie-informes/', estado: 'activa', visibilidad: 'admin', orden: 1 },
   { id: 'doc_marco_legal', moduloId: 'documentacion', nombre: 'Documentación Marco Legal', descripcion: 'Normas del proyecto de licencias médicas, con búsqueda y descarga de los textos oficiales.', url: 'https://cjtorres86.github.io/biblioteca-normativa/', estado: 'activa', visibilidad: 'admin', orden: 2 },
-  { id: 'config_usuarios', moduloId: 'configuracion', nombre: 'Usuarios y accesos', descripcion: 'Crea y administra las cuentas de las personas, y define a qué aplicaciones entra cada una y con qué rol.', url: null, estado: 'proximamente', visibilidad: 'admin', orden: 1 },
+  { id: 'config_usuarios', moduloId: 'configuracion', nombre: 'Usuarios y accesos', descripcion: 'Crea y administra las cuentas de las personas, y define a qué aplicaciones entra cada una y con qué rol.', url: '/configuracion/usuarios', estado: 'activa', visibilidad: 'admin', orden: 1 },
   { id: 'config_perfiles', moduloId: 'configuracion', nombre: 'Perfiles', descripcion: 'Define los perfiles y qué puede hacer cada uno dentro de las aplicaciones.', url: null, estado: 'proximamente', visibilidad: 'admin', orden: 2 },
   { id: 'config_bitacora', moduloId: 'configuracion', nombre: 'Bitácora', descripcion: 'Registro de quién hizo qué y cuándo en todas las aplicaciones, para auditoría y trazabilidad.', url: null, estado: 'proximamente', visibilidad: 'admin', orden: 3 },
 ];
@@ -63,7 +80,7 @@ async function sembrar() {
         );
         nuevas++;
       }
-      await accesos.save(accesos.create({ usuarioId: u.id, aplicacionId: 'reporte_avance_sumarios', rol: p.rolSumarios, alcance: p.alcance }));
+      await accesos.save(accesos.create({ usuarioId: u.id, aplicacionId: 'reporte_avance_sumarios', rol: p.rolSumarios, alcance: p.alcance, opciones: { cargar_datos: p.rolSumarios !== 'Validador' } }));
     }
     console.log(`Módulos: ${MODULOS.length}. Aplicaciones: ${APLICACIONES.length}. Personas nuevas: ${nuevas} de ${PERSONAS.length}.`);
   } finally {

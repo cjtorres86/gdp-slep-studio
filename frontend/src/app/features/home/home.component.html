@@ -1,64 +1,3 @@
-<div class="min-h-screen flex flex-col">
-  <!-- Encabezado -->
-  <header class="bg-white shadow-[0_1px_0_#e3e8f1]">
-    <div class="barra-marca" aria-hidden="true"></div>
-    <div class="mx-auto flex max-w-[1180px] items-center gap-4 px-6 py-3">
-      <img src="logo-dep.png" alt="Educación Pública — Ministerio de Educación" class="h-14 w-auto select-none" draggable="false" />
-      <span class="hidden h-9 w-px bg-[#dfe4ee] sm:block" aria-hidden="true"></span>
-      <div class="hidden leading-tight sm:block">
-        <p class="font-display text-[17px] font-extrabold tracking-tight text-dep-navy">GDP - SLEP Studio</p>
-        <p class="text-[10.5px] font-bold uppercase tracking-[0.14em] text-dep-blue">Portal de aplicaciones</p>
-      </div>
-
-      <div class="ml-auto flex items-center gap-2 sm:gap-4">
-        <nav class="flex items-center gap-1 sm:gap-2" aria-label="Navegación del portal">
-          <button
-            type="button"
-            (click)="irInicio()"
-            aria-current="page"
-            class="flex items-center gap-2 rounded-lg px-3 py-2 text-[12.5px] font-bold text-dep-navy transition hover:bg-dep-gray cursor-pointer"
-          >
-            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M4 11 12 4l8 7" /><path d="M6 9.5V20h12V9.5" />
-            </svg>
-            <span class="sr-only sm:not-sr-only">Inicio</span>
-          </button>
-          @if (configuracion()) {
-            <button
-              #botonConfig
-              type="button"
-              (click)="abrirConfig()"
-              aria-haspopup="dialog"
-              [attr.aria-expanded]="configAbierta()"
-              class="flex items-center gap-2 rounded-lg px-3 py-2 text-[12.5px] font-bold text-dep-navy transition hover:bg-dep-gray cursor-pointer"
-            >
-              <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M4 7h10M18 7h2M4 17h2M10 17h10" /><circle cx="16" cy="7" r="2" /><circle cx="8" cy="17" r="2" />
-              </svg>
-              <span class="sr-only sm:not-sr-only">Configuración</span>
-            </button>
-          }
-        </nav>
-        <span class="hidden h-8 w-px bg-[#dfe4ee] sm:block" aria-hidden="true"></span>
-        <div class="hidden text-right leading-tight sm:block">
-          <p class="text-[13px] font-bold text-dep-navy">{{ auth.usuario()?.nombreParaMostrar }}</p>
-          <p class="text-[11px] text-slate-500">{{ etiquetaRol(auth.usuario()?.rolPortal) }}</p>
-        </div>
-        <button
-          type="button"
-          (click)="auth.logout()"
-          class="flex items-center gap-2 rounded-lg border border-[#d5dbe8] bg-white px-3.5 py-2 text-[12.5px] font-bold text-dep-navy transition hover:border-dep-red hover:text-dep-red cursor-pointer"
-        >
-          <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M9 4H5v16h4M16 8l4 4-4 4M20 12H9" />
-          </svg>
-          Salir
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <!-- Contenido -->
   <main class="mx-auto w-full max-w-[1180px] flex-1 px-6 py-10">
     <div class="mb-8">
       <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-dep-blue">Bienvenido/a</p>
@@ -110,83 +49,6 @@
       }
     }
   </main>
-
-  <footer class="border-t border-[#e3e8f1] bg-white">
-    <p class="mx-auto max-w-[1180px] px-6 py-4 text-[11.5px] text-slate-500">
-      GDP - Gestión y Desarrollo de Personas · Dirección de Educación Pública · Ministerio de Educación
-    </p>
-  </footer>
-  @if (configAbierta() && configuracion(); as c) {
-    <div class="fixed inset-0 z-50 grid place-items-center p-4" (click)="cerrarConfig()">
-      <!-- Fondo: la página se ve difuminada detrás, con manchas de los colores de la marca. -->
-      <div class="absolute inset-0 bg-[#25306B]/25 backdrop-blur-[6px]" aria-hidden="true"></div>
-      <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-        <div class="absolute left-[18%] top-[22%] size-72 rounded-full bg-[#1f84ec]/35 blur-3xl"></div>
-        <div class="absolute bottom-[18%] right-[20%] size-72 rounded-full bg-[#3abff0]/35 blur-3xl"></div>
-        <div class="absolute bottom-[30%] left-[38%] size-56 rounded-full bg-[#ff798a]/25 blur-3xl"></div>
-      </div>
-
-      <section
-        #ventanaConfig
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="titulo-config"
-        (click)="$event.stopPropagation()"
-        class="vidrio relative w-full max-w-[560px] rounded-3xl p-6 sm:p-7"
-      >
-        <header class="flex items-start justify-between gap-4">
-          <div>
-            <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-dep-blue">Administración</p>
-            <h2 id="titulo-config" class="mt-1 font-display text-[22px] font-extrabold tracking-tight text-dep-navy">Configuración</h2>
-            <p class="mt-1 text-[13px] text-slate-600">Elige qué quieres administrar.</p>
-          </div>
-          <button
-            data-cerrar
-            type="button"
-            (click)="cerrarConfig()"
-            aria-label="Cerrar configuración"
-            class="grid size-9 shrink-0 place-items-center rounded-full border border-white/70 bg-white/50 text-dep-navy transition hover:bg-white cursor-pointer"
-          >
-            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
-          </button>
-        </header>
-
-        <ul class="mt-5 flex flex-col gap-3">
-          @for (a of c.aplicaciones; track a.id) {
-            <li>
-              <ng-template #contenidoOpcion>
-                <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-dep-navy text-white shadow-[0_6px_16px_-8px_rgba(37,48,107,0.8)]" aria-hidden="true">
-                  <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-                    @switch (a.id) {
-                      @case ('config_usuarios') { <circle cx="9" cy="8" r="3.2" /><path d="M3.5 19c.7-3.2 2.9-5 5.5-5s4.8 1.8 5.5 5" /><path d="M15.5 5.3a3 3 0 0 1 0 5.4M17.5 14.3c1.6.6 2.6 2.2 3 4.7" /> }
-                      @case ('config_perfiles') { <rect x="3.5" y="5" width="17" height="14" rx="2" /><circle cx="9" cy="11" r="2.2" /><path d="M5.8 16c.5-1.6 1.7-2.5 3.2-2.5s2.7.9 3.2 2.5M14.5 10h3.5M14.5 13.5h3.5" /> }
-                      @default { <path d="M8 4h8M8 4v16M8 20h8M16 4v16" /><path d="M11 8h2M11 12h2M11 16h2" /> }
-                    }
-                  </svg>
-                </span>
-                <span class="min-w-0 flex-1">
-                  <span class="block text-[14.5px] font-bold text-dep-navy">{{ a.nombre }}</span>
-                  <span class="mt-0.5 block text-[12.5px] leading-snug text-slate-600">{{ a.descripcion }}</span>
-                </span>
-              </ng-template>
-
-              @if (a.estado === 'activa' && a.url) {
-                <a [href]="a.url" class="opcion-vidrio flex items-center gap-4 rounded-2xl p-4">
-                  <ng-container *ngTemplateOutlet="contenidoOpcion" />
-                </a>
-              } @else {
-                <div class="opcion-vidrio flex items-center gap-4 rounded-2xl p-4 opacity-90" aria-disabled="true">
-                  <ng-container *ngTemplateOutlet="contenidoOpcion" />
-                  <span class="shrink-0 rounded-full border border-white/80 bg-white/60 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">Próximamente</span>
-                </div>
-              }
-            </li>
-          }
-        </ul>
-      </section>
-    </div>
-  }
-
   @if (marcoAbierto()) {
     <div class="fixed inset-0 z-50 grid place-items-center overflow-y-auto p-4" (click)="cerrarMarco()">
       <div class="absolute inset-0 bg-[#25306B]/25 backdrop-blur-[6px]" aria-hidden="true"></div>
@@ -273,7 +135,6 @@
       </section>
     </div>
   }
-</div>
 
 <!-- Tarjeta de un módulo (la misma para los módulos principales y para Documentación). -->
 <ng-template #tarjeta let-m>

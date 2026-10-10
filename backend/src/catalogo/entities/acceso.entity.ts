@@ -32,4 +32,9 @@ export class Acceso {
   // tener que ser "todos".
   @Column({ type: 'json' })
   alcance: string[];
+
+  // Opciones individuales que la aplicación declara en su manifiesto, con el
+  // valor de esta persona. Ej.: { "cargar_datos": true } en Sumarios.
+  @Column({ type: 'json', nullable: true })
+  opciones: Record<string, boolean> | null;
 }
