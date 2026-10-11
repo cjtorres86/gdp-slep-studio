@@ -36,6 +36,13 @@ export const CATALOGO_SUMARIOS: PermisoCatalogo[] = [
 
   { clave: 'mensajes', grupo: 'Mensajes', tipo: 'accion', etiqueta: 'Escribir mensajes', descripcion: 'Participar en las conversaciones de cada formulario.' },
   { clave: 'moderar_mensajes', grupo: 'Mensajes', tipo: 'accion', etiqueta: 'Moderar mensajes', descripcion: 'Editar o borrar mensajes escritos por otras personas.', sensible: true, requiere: ['mensajes'] },
+
+  // Pantallas propias de Sumarios para consultar personas, perfiles y su
+  // bitácora. El Superadmin las ve siempre; a cualquier otro perfil se le
+  // pueden activar aquí. (Administrar sigue haciéndose en el portal.)
+  { clave: 'ver_usuarios', grupo: 'Administración de la aplicación', tipo: 'vista', etiqueta: 'Ver usuarios', descripcion: 'Consultar la lista de personas dentro de Avance de Sumarios.', sensible: true },
+  { clave: 'ver_perfiles', grupo: 'Administración de la aplicación', tipo: 'vista', etiqueta: 'Ver perfiles', descripcion: 'Consultar los perfiles y sus permisos dentro de Avance de Sumarios.' },
+  { clave: 'ver_bitacora', grupo: 'Administración de la aplicación', tipo: 'vista', etiqueta: 'Ver bitácora', descripcion: 'Consultar la bitácora propia de Avance de Sumarios (quién hizo qué y cuándo).', sensible: true },
 ];
 
 // Carga de datos de un perfil: siempre · opcional (activada o desactivada al
