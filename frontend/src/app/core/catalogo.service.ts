@@ -26,7 +26,9 @@ export class CatalogoService {
     this.estado.set('cargando');
     this.http.get<ModuloVista[]>(`${environment.apiUrl}/portal/catalogo`).subscribe({
       next: (m) => {
-        this.modulos.set(m);
+        // Un servidor anterior no manda "autorizado", pero solo enviaba lo que
+        // la persona podía abrir: en ese caso, todo lo recibido está autorizado.
+        this.modulos.set(m.map((x) => ({ ...x, aplicaciones: x.aplicaciones.map((a) => ({ ...a, autorizado: a.autorizado ?? true })) })));
         this.estado.set('listo');
       },
       error: (err: HttpErrorResponse) => {
