@@ -22,6 +22,18 @@ export interface AplicacionVista {
   alcance: string[] | null;
   // Aplicación integrada: se entra con un pase del portal, sin volver a escribir la clave.
   ingresoUnico: boolean;
+  // Todas las aplicaciones se muestran a todos; false = no puede entrar.
+  autorizado: boolean;
+}
+
+// Historial del asistente de la pantalla de inicio.
+export type ResultadoBusqueda = 'abrir' | 'proximamente' | 'sin_autorizacion' | 'sin_resultados';
+export interface BusquedaHistorial {
+  id: string;
+  texto: string;
+  aplicacionId: string | null;
+  resultado: ResultadoBusqueda;
+  creadoEn: string;
 }
 
 export interface ModuloVista {

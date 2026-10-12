@@ -13,6 +13,9 @@ export interface AplicacionVista {
   rol: string | null;
   alcance: string[] | null;
   ingresoUnico: boolean;
+  // ¿La persona puede entrar? Todas las aplicaciones se muestran a todos;
+  // las que no puede abrir llegan sin dirección y con autorizado = false.
+  autorizado: boolean;
 }
 
 export interface ModuloVista {
@@ -23,14 +26,19 @@ export interface ModuloVista {
   aplicaciones: AplicacionVista[];
 }
 
-// Decide qué módulos y aplicaciones ve una persona. Es una función pura
-// (recibe todo lo que necesita, no consulta nada) para poder probar cada
-// regla por separado — esta es la parte donde un error significaría que
-// alguien ve algo que no le corresponde.
+// Arma el catálogo de una persona. Es una función pura (recibe todo lo que
+// necesita, no consulta nada) para poder probar cada regla por separado.
+//
+// Todas las aplicaciones se muestran a todas las personas (vitrina completa
+// del portal). Lo que cambia es si puede ENTRAR (autorizado):
+//  - por_acceso: quien tenga una fila de Acceso (el Superadmin, a todas).
+//  - admin: Superadmin y Admin del portal.
+//  - superadmin: solo el Superadmin.
+// A una aplicación no autorizada no se le manda la dirección.
 //
 // OJO: esto decide qué se DIBUJA en el portal, no es la protección real.
 // Cada aplicación debe verificar el rol y el alcance de la persona en su
-// propio backend; ocultar una tarjeta jamás reemplaza eso.
+// propio backend; ocultar una dirección jamás reemplaza eso.
 export function construirCatalogo(
   modulos: Modulo[],
   aplicaciones: Aplicacion[],
@@ -41,26 +49,24 @@ export function construirCatalogo(
   const esAdmin = esSuperadmin || rolPortal === 'admin';
   const accesoPorApp = new Map(accesos.map((a) => [a.aplicacionId, a]));
 
-  const vista = (app: Aplicacion): AplicacionVista | null => {
+  const vista = (app: Aplicacion): AplicacionVista => {
     const acceso = accesoPorApp.get(app.id);
-    let visible: boolean;
-    if (app.visibilidad === 'superadmin') visible = esSuperadmin;
-    else if (app.visibilidad === 'admin') visible = esAdmin;
-    // por_acceso: las "proximamente" son vitrina para todos; las activas,
-    // solo para quien tenga acceso (el Superadmin las ve todas).
-    else visible = app.estado === 'proximamente' || esSuperadmin || !!acceso;
-    if (!visible) return null;
+    let autorizado: boolean;
+    if (app.visibilidad === 'superadmin') autorizado = esSuperadmin;
+    else if (app.visibilidad === 'admin') autorizado = esAdmin;
+    else autorizado = esSuperadmin || !!acceso;
 
     return {
       id: app.id,
       nombre: app.nombre,
       descripcion: app.descripcion,
       estado: app.estado,
-      url: app.estado === 'activa' ? app.url : null,
+      url: app.estado === 'activa' && autorizado ? app.url : null,
       rol: acceso?.rol ?? (esSuperadmin && app.visibilidad === 'por_acceso' && app.estado === 'activa' ? 'Superadmin' : null),
       alcance: acceso?.alcance ?? null,
       // Aplicación integrada: se entra con un pase del portal, sin volver a escribir la clave.
       ingresoUnico: app.estado === 'activa' && !!app.manifiesto,
+      autorizado,
     };
   };
 
@@ -74,10 +80,7 @@ export function construirCatalogo(
       aplicaciones: aplicaciones
         .filter((a) => a.moduloId === m.id)
         .sort((a, b) => a.orden - b.orden)
-        .map(vista)
-        .filter((a): a is AplicacionVista => a !== null),
+        .map(vista),
     }))
-    // Un módulo sin ninguna aplicación visible no se dibuja (por eso
-    // "Configuración" desaparece para quien no administra).
     .filter((m) => m.aplicaciones.length > 0);
 }

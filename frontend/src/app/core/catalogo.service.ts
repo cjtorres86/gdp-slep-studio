@@ -12,7 +12,13 @@ export class CatalogoService {
   readonly estado = signal<'cargando' | 'listo' | 'error'>('cargando');
   readonly mensajeError = signal('');
 
-  readonly configuracion = computed(() => this.modulos().find((m) => m.id === 'configuracion') ?? null);
+  // El botón Configuración de la barra superior: solo con las opciones a las
+  // que la persona puede entrar (el catálogo ahora trae todo, para todos).
+  readonly configuracion = computed(() => {
+    const m = this.modulos().find((x) => x.id === 'configuracion');
+    const aplicaciones = m?.aplicaciones.filter((a) => a.autorizado) ?? [];
+    return m && aplicaciones.length ? { ...m, aplicaciones } : null;
+  });
 
   constructor(private readonly http: HttpClient) {}
 

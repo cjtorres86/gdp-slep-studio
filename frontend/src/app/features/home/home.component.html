@@ -1,57 +1,223 @@
-  <main class="mx-auto w-full max-w-[1180px] flex-1 px-6 py-10">
-    <div class="mb-8">
-      <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-dep-blue">Bienvenido/a</p>
-      <h1 class="mt-1 font-display text-[30px] font-extrabold leading-tight tracking-tight text-dep-navy">
-        Hola, {{ auth.usuario()?.nombreParaMostrar }}
-      </h1>
-      <p class="mt-1.5 text-[14px] text-slate-600">Selecciona la aplicación a la que quieres ingresar.</p>
-      @if (errorApertura()) {
-        <p role="alert" class="mt-4 max-w-2xl rounded-xl border border-[#ffc9d1] bg-[#fff1f3] px-4 py-2.5 text-[13px] font-semibold text-[#b4112b]">{{ errorApertura() }}</p>
-      }
-    </div>
+  <main class="mx-auto w-full max-w-[1180px] flex-1 px-6 py-8">
+    <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
 
-    @switch (estado()) {
-      @case ('cargando') {
-        <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3" aria-busy="true" aria-label="Cargando tus aplicaciones">
-          @for (i of [1, 2, 3]; track i) {
-            <div class="h-72 animate-pulse rounded-2xl border border-[#e3e8f1] bg-white"></div>
+      <!-- Aplicaciones: barra lateral derecha. En pantallas angostas va arriba,
+           como menú desplegable. -->
+      <aside class="order-first lg:sticky lg:top-6 lg:order-last" aria-label="Aplicaciones del portal">
+        <button
+          type="button"
+          (click)="menuMovil.set(!menuMovil())"
+          [attr.aria-expanded]="menuMovil()"
+          aria-controls="panel-aplicaciones"
+          class="flex w-full items-center justify-between rounded-2xl border border-[#e3e8f1] bg-white px-4 py-3 text-[13px] font-bold text-dep-navy shadow-[0_8px_24px_-14px_rgba(37,48,107,0.35)] lg:hidden cursor-pointer"
+        >
+          <span class="flex items-center gap-2">
+            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1.2" /><rect x="14" y="4" width="6" height="6" rx="1.2" /><rect x="4" y="14" width="6" height="6" rx="1.2" /><rect x="14" y="14" width="6" height="6" rx="1.2" /></svg>
+            Aplicaciones
+          </span>
+          <svg class="size-4 transition" [class.rotate-180]="menuMovil()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+        </button>
+
+        <div id="panel-aplicaciones" class="mt-2 lg:mt-0 lg:block" [class.hidden]="!menuMovil()">
+          <div class="overflow-hidden rounded-2xl border border-[#e3e8f1] bg-white shadow-[0_8px_24px_-14px_rgba(37,48,107,0.35)]">
+            <p class="border-b border-[#eef1f6] px-5 pb-3 pt-4 text-[11px] font-bold uppercase tracking-[0.16em] text-dep-blue">Aplicaciones</p>
+            @switch (estado()) {
+              @case ('cargando') {
+                <div class="flex flex-col gap-3 p-4" aria-busy="true" aria-label="Cargando tus aplicaciones">
+                  @for (i of [1, 2, 3]; track i) { <div class="h-16 animate-pulse rounded-xl bg-dep-gray"></div> }
+                </div>
+              }
+              @case ('error') {
+                <div role="alert" class="p-4">
+                  <p class="text-[12.5px] font-semibold text-[#b4112b]">{{ mensajeError() }}</p>
+                  <button type="button" (click)="cargar()" class="mt-3 rounded-lg bg-dep-navy px-3.5 py-1.5 text-[12.5px] font-bold text-white hover:bg-dep-blue cursor-pointer">Reintentar</button>
+                </div>
+              }
+              @case ('listo') {
+                @for (m of modulos(); track m.id; let ultimo = $last) {
+                  <section class="border-[#eef1f6] px-4 py-4" [class.border-b]="!ultimo" [attr.aria-labelledby]="'lat-' + m.id">
+                    <header class="mb-2.5 flex items-center gap-2.5">
+                      <ng-container *ngTemplateOutlet="icono; context: { $implicit: m.icono, color: m.color, chico: true }" />
+                      <h2 [id]="'lat-' + m.id" class="font-display text-[12px] font-extrabold uppercase tracking-wide text-dep-navy">{{ m.nombre }}</h2>
+                    </header>
+                    <ul class="flex flex-col gap-2">
+                      @for (a of m.aplicaciones; track a.id) {
+                        <li>
+                          @if (a.estado !== 'activa') {
+                            <div class="rounded-xl border border-dashed border-[#cdd5e6] bg-[#f8f9fc] px-3 py-2.5" aria-disabled="true">
+                              <p class="text-[13px] font-bold leading-snug text-dep-navy/55">{{ a.nombre }}</p>
+                              <div class="mt-1.5"><ng-container *ngTemplateOutlet="insignia; context: { $implicit: a }" /></div>
+                            </div>
+                          } @else if (a.autorizado && a.url) {
+                            <a
+                              [href]="a.url"
+                              (click)="entrar($event, a)"
+                              [attr.target]="a.url.startsWith('/') ? null : '_blank'"
+                              [attr.rel]="a.url.startsWith('/') ? null : 'noopener'"
+                              class="group block rounded-xl border border-[#d9e0ee] bg-white px-3 py-2.5 transition hover:-translate-y-0.5 hover:shadow-[0_10px_22px_-12px_rgba(37,48,107,0.5)]"
+                              [style.border-left]="'4px solid ' + m.color"
+                            >
+                              <div class="flex items-start justify-between gap-2">
+                                <p class="text-[13px] font-bold leading-snug text-dep-navy group-hover:text-dep-blue">{{ a.nombre }}</p>
+                                <svg class="mt-0.5 size-4 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-dep-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                              </div>
+                              <div class="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                                <ng-container *ngTemplateOutlet="insignia; context: { $implicit: a }" />
+                                @if (a.rol) { <span class="rounded-full bg-dep-gray px-2 py-0.5 text-[10px] font-bold text-dep-navy">Rol: {{ a.rol }}</span> }
+                                @if (textoAlcance(a.alcance); as alcance) { <span class="text-[10.5px] text-slate-500">{{ alcance }}</span> }
+                              </div>
+                            </a>
+                          } @else {
+                            <!-- Sin autorización: se ve igual, pero el asistente explica por qué no se abre. -->
+                            <button
+                              type="button"
+                              (click)="entrar($event, a)"
+                              class="group block w-full rounded-xl border border-[#d9e0ee] bg-white px-3 py-2.5 text-left transition hover:shadow-[0_10px_22px_-12px_rgba(37,48,107,0.5)] cursor-pointer"
+                              [style.border-left]="'4px solid ' + m.color"
+                            >
+                              <div class="flex items-start justify-between gap-2">
+                                <p class="text-[13px] font-bold leading-snug text-dep-navy">{{ a.nombre }}</p>
+                                <svg class="mt-0.5 size-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+                              </div>
+                              <div class="mt-1.5"><ng-container *ngTemplateOutlet="insignia; context: { $implicit: a }" /></div>
+                            </button>
+                          }
+                        </li>
+                      }
+                    </ul>
+
+                    <!-- Respaldo normativo: al pie de Documentación. -->
+                    @if (m.id === 'documentacion') {
+                      <footer class="mt-3 border-t border-dashed border-[#bfe8f8] pt-3">
+                        <p class="flex items-start gap-2 text-[11px] font-bold leading-snug text-dep-navy">
+                          <svg class="mt-px size-4 shrink-0 text-[#1d9fd0]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v5c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6z" /><path d="m9 12 2 2 4-4" /></svg>
+                          Marco normativo que exige registros y documentación de los sistemas
+                        </p>
+                        <ul class="mt-2 flex flex-wrap gap-1.5" aria-label="Normas que respaldan este módulo">
+                          @for (n of ['Ley 21.180', 'DS 7, 10 y 11/2023', 'Ley 21.663']; track n) {
+                            <li class="rounded-full bg-[#eefaff] px-2 py-0.5 text-[10px] font-bold text-[#0a6d93]">{{ n }}</li>
+                          }
+                        </ul>
+                        <button type="button" (click)="abrirMarco($event)" aria-haspopup="dialog" class="mt-2 inline-flex items-center gap-1 text-[12px] font-bold text-dep-blue underline-offset-2 hover:underline cursor-pointer">
+                          Ver marco legal
+                          <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                        </button>
+                      </footer>
+                    }
+                  </section>
+                }
+              }
+            }
+          </div>
+        </div>
+      </aside>
+
+      <!-- Centro: el asistente -->
+      <section class="flex min-w-0 flex-col gap-4" aria-labelledby="titulo-asistente">
+        <div>
+          <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-dep-blue">Asistente del portal</p>
+          <h1 id="titulo-asistente" class="mt-1 font-display text-[30px] font-extrabold leading-tight tracking-tight text-dep-navy">Hola, {{ nombre }}</h1>
+          <p class="mt-1 text-[14px] text-slate-600">Escribe lo que necesitas y te llevo a la aplicación indicada.</p>
+        </div>
+
+        <!-- Conversación: lo que escribió la persona y lo que respondió el asistente. -->
+        <div class="rounded-2xl border border-[#e3e8f1] bg-white shadow-[0_8px_24px_-14px_rgba(37,48,107,0.35)]">
+          <div class="flex items-center justify-between border-b border-[#eef1f6] px-5 py-2.5">
+            <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Historial de búsquedas</p>
+            @if (intercambios().length) {
+              <button type="button" (click)="borrarHistorial()" class="text-[11.5px] font-bold text-slate-500 underline-offset-2 hover:text-dep-red hover:underline cursor-pointer">Borrar historial</button>
+            }
+          </div>
+          <div #conversacion class="flex max-h-[44vh] min-h-[220px] flex-col gap-3 overflow-y-auto px-5 py-4" role="log" aria-live="polite" aria-label="Conversación con el asistente">
+            @if (!visibles().length) {
+              <ng-container *ngTemplateOutlet="burbuja; context: { $implicit: { tipo: 'bienvenida', titulo: '', texto: 'Hola, ' + nombre + '. ¿Qué necesitas hacer hoy? Puedes escribir, por ejemplo, «reporte», «licencia» o «documentación».' } }" />
+            }
+            @for (i of visibles(); track i.id) {
+              @if (i.pregunta) {
+                <div class="flex justify-end">
+                  <p class="max-w-[80%] rounded-2xl rounded-br-md bg-dep-navy px-4 py-2 text-[13.5px] text-white">{{ i.pregunta }}</p>
+                </div>
+              }
+              <ng-container *ngTemplateOutlet="burbuja; context: { $implicit: i }" />
+            }
+          </div>
+        </div>
+
+        <!-- Barra de búsqueda tipo "prompt" -->
+        <div class="relative" data-busqueda>
+          <div
+            class="flex items-center gap-3 rounded-2xl border border-[#d9e0ee] bg-white px-4 py-3 shadow-[0_12px_30px_-16px_rgba(37,48,107,0.45)] transition focus-within:border-dep-blue"
+            [class.opacity-70]="bloqueada()"
+          >
+            @if (bloqueada()) {
+              <ng-container *ngTemplateOutlet="spinner" />
+            } @else {
+              <svg class="size-5 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></svg>
+            }
+            <input
+              #campo
+              type="text"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-controls="resultados-asistente"
+              [attr.aria-expanded]="menuResultados() && !!consulta().trim()"
+              [attr.aria-activedescendant]="idActivo()"
+              aria-label="Buscar una aplicación"
+              [value]="consulta()"
+              (input)="alEscribir(campo.value)"
+              (focus)="menuResultados.set(!!consulta().trim())"
+              (keydown)="alPresionarEnCampo($event)"
+              [disabled]="bloqueada()"
+              maxlength="200"
+              autocomplete="off"
+              [placeholder]="'¿Qué necesitas hacer hoy, ' + nombre + '? Escribe «reporte», «licencia», «documentación»…'"
+              class="min-w-0 flex-1 bg-transparent text-[15px] text-dep-navy placeholder:text-slate-400 disabled:cursor-not-allowed"
+              style="outline: none"
+            />
+            <button
+              type="button"
+              (click)="buscar()"
+              [disabled]="bloqueada() || !consulta().trim()"
+              aria-label="Buscar"
+              class="grid size-9 shrink-0 place-items-center rounded-xl bg-dep-navy text-white transition hover:bg-dep-blue disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+            >
+              <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+            </button>
+          </div>
+
+          @if (menuResultados() && consulta().trim()) {
+            <ul id="resultados-asistente" role="listbox" class="absolute left-0 right-0 top-full z-30 mt-2 max-h-[340px] overflow-y-auto rounded-2xl border border-[#e3e8f1] bg-white p-2 shadow-[0_18px_40px_-18px_rgba(37,48,107,0.55)]">
+              @for (r of resultados(); track r.app.id; let k = $index) {
+                <li role="option" [id]="'res-' + r.app.id" [attr.aria-selected]="k === indiceActivo()">
+                  <button
+                    type="button"
+                    (click)="elegir(r.app)"
+                    (mouseenter)="indiceActivo.set(k)"
+                    class="flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition cursor-pointer"
+                    [class.bg-dep-gray]="k === indiceActivo()"
+                  >
+                    <ng-container *ngTemplateOutlet="icono; context: { $implicit: r.modulo.icono, color: r.modulo.color, chico: false }" />
+                    <span class="min-w-0 flex-1">
+                      <span class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span class="text-[14px] font-bold text-dep-navy">{{ r.app.nombre }}</span>
+                        <ng-container *ngTemplateOutlet="insignia; context: { $implicit: r.app }" />
+                      </span>
+                      <span class="mt-0.5 block text-[12.5px] leading-snug text-slate-600">{{ r.app.descripcion }}</span>
+                      <span class="mt-0.5 block text-[10.5px] font-bold uppercase tracking-wider text-slate-400">{{ r.modulo.nombre }}</span>
+                    </span>
+                  </button>
+                </li>
+              } @empty {
+                <li class="px-3 py-3 text-[13px] text-slate-500">No encontré aplicaciones con ese texto. Presiona Enter y te respondo.</li>
+              }
+            </ul>
           }
+          <p class="mt-2 px-1 text-[11.5px] text-slate-500">Enter abre el primer resultado · ↑ ↓ para elegir · Esc para cerrar la lista</p>
         </div>
-      }
-
-      @case ('error') {
-        <div role="alert" class="max-w-xl rounded-2xl border border-[#ffc9d1] bg-[#fff1f3] p-6">
-          <p class="text-[14px] font-semibold text-[#b4112b]">{{ mensajeError() }}</p>
-          <button type="button" (click)="cargar()" class="mt-4 rounded-lg bg-dep-navy px-4 py-2 text-[13px] font-bold text-white hover:bg-dep-blue cursor-pointer">
-            Reintentar
-          </button>
-        </div>
-      }
-
-      @case ('listo') {
-        @if (modulos().length === 0) {
-          <div class="max-w-xl rounded-2xl border border-[#e3e8f1] bg-white p-6">
-            <p class="text-[14px] font-bold text-dep-navy">Todavía no tienes aplicaciones asignadas.</p>
-            <p class="mt-1 text-[13px] text-slate-600">Escríbele a quien administra el sistema para que te dé acceso.</p>
-          </div>
-        } @else {
-          <!-- Los módulos miden lo mismo (misma columna y misma altura). Documentación
-               va aparte, tras una línea vertical, para que se note "especial". -->
-          <div class="grilla-modulos grid gap-6 md:grid-cols-2" [class.con-documentacion]="documentacion()">
-            @for (m of principales(); track m.id) {
-              <ng-container *ngTemplateOutlet="tarjeta; context: { $implicit: m }" />
-            }
-
-            @if (documentacion(); as d) {
-              <div class="separador-documentacion md:col-span-2 lg:col-span-1" aria-hidden="true"></div>
-
-              <ng-container *ngTemplateOutlet="tarjeta; context: { $implicit: d }" />
-            }
-          </div>
-        }
-      }
-    }
+      </section>
+    </div>
   </main>
+
   @if (marcoAbierto()) {
     <div class="fixed inset-0 z-50 grid place-items-center p-4" (click)="cerrarMarco()">
       <div class="absolute inset-0 bg-[#25306B]/25 backdrop-blur-[6px]" aria-hidden="true"></div>
@@ -141,105 +307,67 @@
     </div>
   }
 
-<!-- Tarjeta de un módulo (la misma para los módulos principales y para Documentación). -->
-<ng-template #tarjeta let-m>
-  <section class="flex h-full flex-col overflow-hidden rounded-2xl border border-[#e3e8f1] bg-white shadow-[0_8px_24px_-14px_rgba(37,48,107,0.35)]" [attr.aria-labelledby]="'mod-' + m.id">
-    <div class="h-1.5" [style.background]="m.color" aria-hidden="true"></div>
-
-    <header class="flex min-h-[88px] items-center gap-3.5 px-5 pb-3 pt-5">
-      <span class="grid size-11 shrink-0 place-items-center rounded-xl text-white" [style.background]="m.color" aria-hidden="true">
-        <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          @switch (m.icono) {
-            @case ('formularios') {
-              <path d="M7 3h7l4 4v14H7z" /><path d="M14 3v4h4" /><path d="M9.5 12h5M9.5 15.5h5" />
-            }
-            @case ('automatizacion') {
-              <path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12z" />
-            }
-            @case ('documentacion') {
-              <path d="M12 6.5C10.3 5.2 7.8 4.6 4 4.6v13.8c3.8 0 6.3.6 8 1.9 1.7-1.3 4.2-1.9 8-1.9V4.6c-3.8 0-6.3.6-8 1.9z" /><path d="M12 6.5v13.8" />
-            }
-            @default {
-              <path d="M4 7h10M18 7h2M4 17h2M10 17h10" /><circle cx="16" cy="7" r="2" /><circle cx="8" cy="17" r="2" />
-            }
-          }
-        </svg>
-      </span>
-      <div class="min-w-0 leading-tight">
-        <h2 [id]="'mod-' + m.id" class="font-display text-[14px] font-extrabold uppercase tracking-wide text-dep-navy">{{ m.nombre }}</h2>
-        <p class="mt-0.5 text-[11.5px] text-slate-500">{{ cantidad(m.aplicaciones.length) }}</p>
-      </div>
-    </header>
-
-    <ul class="flex flex-col gap-2.5 px-4 pb-4">
-      @for (a of m.aplicaciones; track a.id) {
-        <li>
-          @if (a.estado === 'activa' && a.url) {
-            <a
-              [href]="a.url"
-              (click)="entrar($event, a)"
-              target="_blank"
-              rel="noopener"
-              class="group block rounded-xl border border-[#d9e0ee] bg-white p-4 transition hover:-translate-y-0.5 hover:shadow-[0_10px_22px_-12px_rgba(37,48,107,0.5)]"
-              [style.--acento]="m.color"
-              style="border-left: 4px solid var(--acento)"
-            >
-              <div class="flex items-start justify-between gap-3">
-                <p class="text-[14px] font-bold leading-snug text-dep-navy group-hover:text-dep-blue">{{ a.nombre }}</p>
-                <svg class="mt-0.5 size-5 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-dep-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M5 12h14M13 6l6 6-6 6" />
-                </svg>
-              </div>
-              <p class="mt-1 text-[12.5px] leading-snug text-slate-600">{{ a.descripcion }}</p>
-              <div class="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
-                <span class="inline-flex items-center gap-1.5 rounded-full bg-[#eaf6dc] px-2.5 py-0.5 text-[10.5px] font-bold text-[#47710f]">
-                  <span class="size-1.5 rounded-full bg-[#6aa81a]"></span> Disponible
-                </span>
-                @if (a.rol) {
-                  <span class="rounded-full bg-dep-gray px-2.5 py-0.5 text-[10.5px] font-bold text-dep-navy">Rol: {{ a.rol }}</span>
-                }
-                @if (textoAlcance(a.alcance); as alcance) {
-                  <span class="text-[11px] text-slate-500">{{ alcance }}</span>
-                }
-              </div>
-            </a>
-          } @else {
-            <div class="rounded-xl border border-dashed border-[#cdd5e6] bg-[#f8f9fc] p-4" aria-disabled="true">
-              <p class="text-[14px] font-bold leading-snug text-dep-navy/55">{{ a.nombre }}</p>
-              <p class="mt-1 text-[12.5px] leading-snug text-slate-500">{{ a.descripcion }}</p>
-              <div class="mt-3">
-                <span class="inline-block rounded-full border border-[#d5dbe8] bg-white px-2.5 py-0.5 text-[10.5px] font-bold uppercase tracking-wider text-slate-500">Próximamente</span>
-              </div>
-            </div>
-          }
-        </li>
+<!-- Ícono de un módulo (los mismos íconos de línea de siempre, con el color del módulo). -->
+<ng-template #icono let-icono let-color="color" let-chico="chico">
+  <span class="grid shrink-0 place-items-center text-white" [class.size-7]="chico" [class.rounded-lg]="chico" [class.size-9]="!chico" [class.rounded-xl]="!chico" [style.background]="color" aria-hidden="true">
+    <svg [class.size-4]="chico" [class.size-5]="!chico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      @switch (icono) {
+        @case ('formularios') { <path d="M7 3h7l4 4v14H7z" /><path d="M14 3v4h4" /><path d="M9.5 12h5M9.5 15.5h5" /> }
+        @case ('automatizacion') { <path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12z" /> }
+        @case ('documentacion') { <path d="M12 6.5C10.3 5.2 7.8 4.6 4 4.6v13.8c3.8 0 6.3.6 8 1.9 1.7-1.3 4.2-1.9 8-1.9V4.6c-3.8 0-6.3.6-8 1.9z" /><path d="M12 6.5v13.8" /> }
+        @default { <path d="M4 7h10M18 7h2M4 17h2M10 17h10" /><circle cx="16" cy="7" r="2" /><circle cx="8" cy="17" r="2" /> }
       }
-    </ul>
+    </svg>
+  </span>
+</ng-template>
 
-    <!-- Respaldo normativo: siempre visible al pie del módulo Documentación. -->
-    @if (m.id === 'documentacion') {
-      <footer class="mx-4 mb-4 mt-auto border-t border-dashed border-[#bfe8f8] pt-3">
-        <p class="flex items-start gap-2 text-[11.5px] font-bold leading-snug text-dep-navy">
-          <svg class="mt-px size-4 shrink-0 text-[#1d9fd0]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 3 4 6v5c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6z" /><path d="m9 12 2 2 4-4" />
-          </svg>
-          Marco normativo que exige registros y documentación de los sistemas
-        </p>
-        <ul class="mt-2 flex flex-wrap gap-1.5" aria-label="Normas que respaldan este módulo">
-          @for (n of ['Ley 21.180', 'DS 7, 10 y 11/2023', 'Ley 21.663']; track n) {
-            <li class="rounded-full bg-[#eefaff] px-2.5 py-0.5 text-[10.5px] font-bold text-[#0a6d93]">{{ n }}</li>
-          }
-        </ul>
-        <button
-          type="button"
-          (click)="abrirMarco($event)"
-          aria-haspopup="dialog"
-          class="mt-2.5 inline-flex items-center gap-1 text-[12px] font-bold text-dep-blue underline-offset-2 hover:underline cursor-pointer"
-        >
-          Ver marco legal
-          <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-        </button>
-      </footer>
+<!-- Estado de una aplicación: los mismos distintivos de siempre. -->
+<ng-template #insignia let-a>
+  @if (a.estado !== 'activa') {
+    <span class="inline-block rounded-full border border-[#d5dbe8] bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">Próximamente</span>
+  } @else {
+    <span class="inline-flex items-center gap-1.5 rounded-full bg-[#eaf6dc] px-2 py-0.5 text-[10px] font-bold text-[#47710f]"><span class="size-1.5 rounded-full bg-[#6aa81a]"></span> Disponible</span>
+    @if (!a.autorizado) {
+      <span class="inline-flex items-center gap-1 text-[10.5px] font-bold text-slate-500">
+        <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+        Requiere autorización
+      </span>
     }
-  </section>
+  }
+</ng-template>
+
+<ng-template #spinner>
+  <svg class="size-5 shrink-0 animate-spin text-dep-blue" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-opacity="0.2" stroke-width="3" /><path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round" /></svg>
+</ng-template>
+
+<!-- Respuesta del asistente. -->
+<ng-template #burbuja let-i>
+  <div class="flex items-start gap-2.5">
+    <span class="grid size-8 shrink-0 place-items-center rounded-full bg-dep-navy text-white" aria-hidden="true">
+      <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="6" height="6" rx="1.2" /><rect x="14" y="4" width="6" height="6" rx="1.2" /><rect x="4" y="14" width="6" height="6" rx="1.2" /><rect x="14" y="14" width="6" height="6" rx="1.2" /></svg>
+    </span>
+    <div
+      class="max-w-[85%] rounded-2xl rounded-tl-md border px-4 py-2.5 text-[13.5px] leading-relaxed"
+      [ngClass]="i.tipo === 'error' ? 'border-[#ffc9d1] bg-[#fff1f3] text-[#b4112b]' : 'border-[#e3e8f1] bg-[#f8f9fc] text-slate-700'"
+    >
+      <p class="flex items-start gap-2">
+        @switch (i.tipo) {
+          @case ('construyendo') { <ng-container *ngTemplateOutlet="spinner" /> }
+          @case ('abrir') {
+            <svg class="mt-0.5 size-4 shrink-0 text-[#6aa81a]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10" /></svg>
+          }
+          @case ('proximamente') {
+            <svg class="mt-0.5 size-4 shrink-0 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg>
+          }
+          @case ('sin_autorizacion') {
+            <svg class="mt-0.5 size-4 shrink-0 text-dep-navy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+          }
+        }
+        <span>
+          @if (i.tipo === 'sin_autorizacion' && i.titulo) { <strong class="block text-dep-navy">{{ i.titulo }}</strong> }
+          {{ i.texto }}
+        </span>
+      </p>
+    </div>
+  </div>
 </ng-template>
