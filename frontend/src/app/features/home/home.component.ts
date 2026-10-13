@@ -7,6 +7,7 @@ import { AplicacionVista, BusquedaHistorial, InformeVista, ModuloVista, Opciones
 import { Component, ElementRef, HostListener, OnDestroy, OnInit, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { AuthService } from '../../core/auth.service';
 import { CatalogoService } from '../../core/catalogo.service';
+import { PanelConfigService } from '../../core/panel-config.service';
 import { atraparTab } from '../../core/atrapar-tab';
 import { bloquearFondoMientras } from '../../core/bloquear-fondo';
 
@@ -86,6 +87,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private readonly catalogo = inject(CatalogoService);
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
+  private readonly panelConfig = inject(PanelConfigService);
   readonly modulos = this.catalogo.modulos;
   readonly estado = this.catalogo.estado;
   readonly mensajeError = this.catalogo.mensajeError;
@@ -220,12 +222,14 @@ export class HomeComponent implements OnInit, OnDestroy {
     const bloque = this.bloqueBusqueda()?.nativeElement;
     const barra = this.cajaBarra()?.nativeElement;
     const conversacion = this.conversacion()?.nativeElement;
+    if (!this.listaAbajo() && lista && seccion && bloque && conversacion) {
+      this.ajustarListaArriba(lista, seccion, bloque, conversacion);
+      return;
+    }
     if (!this.listaAbajo() || !lista || !seccion || !bloque || !barra || !conversacion) {
       this.desplazamiento.set(0);
       this.altoLista.set(null);
-      // Conversación iniciada: la lista ocupa su espacio sobre la barra y empuja
-      // la conversación hacia arriba; esta queda anclada abajo, con el último
-      // mensaje visible justo encima de la lista.
+      this.saludoFijo.set(false);
       if (!this.listaAbajo() && conversacion) conversacion.scrollTop = conversacion.scrollHeight;
       return;
     }
@@ -239,6 +243,37 @@ export class HomeComponent implements OnInit, OnDestroy {
     const subir = Math.min(Math.max(0, altoNatural - espacioAbajo), maximoSubir);
     this.desplazamiento.set(Math.round(subir));
     this.altoLista.set(Math.max(HomeComponent.ALTO_MINIMO_LISTA, Math.floor(espacioAbajo + subir)));
+  }
+
+  // Conversación iniciada: la lista se abre hacia ARRIBA dentro del flujo y
+  // empuja la conversación. Crece con sus opciones hasta justo debajo del
+  // saludo (que queda siempre a la vista); solo si ni así caben, tiene scroll.
+  private ajustarListaArriba(lista: HTMLElement, seccion: HTMLElement, bloque: HTMLElement, conversacion: HTMLElement): void {
+    this.desplazamiento.set(0);
+    // Alto del saludo desde el borde de la conversación (fijo o no, mide lo
+    // mismo: .saludo-fijo lleva el margen superior dentro de su propio alto).
+    const saludo = conversacion.firstElementChild as HTMLElement | null;
+    const altoSaludo = saludo?.classList.contains('saludo-fijo')
+      ? saludo.offsetHeight + parseFloat(getComputedStyle(saludo).marginBottom)
+      : parseFloat(getComputedStyle(conversacion).paddingTop) + (saludo?.offsetHeight ?? 0);
+    // Alto que comparten la conversación y la lista (+ su separación): todo lo
+    // de la sección menos la barra y sus textos, que no cambian.
+    const compartido = seccion.clientHeight - (bloque.offsetHeight - lista.offsetHeight);
+    this.altoLista.set(Math.max(HomeComponent.ALTO_MINIMO_LISTA, Math.floor(compartido - altoSaludo - HomeComponent.SEPARACION)));
+    // Después de aplicar el alto: la conversación queda anclada abajo (el último
+    // mensaje justo sobre la lista, pasando por debajo del saludo fijo).
+    requestAnimationFrame(() => {
+      conversacion.scrollTop = conversacion.scrollHeight;
+      this.alDesplazarConversacion();
+    });
+  }
+
+  // El saludo se fija arriba solo cuando hace falta: lista abierta en la
+  // conversación y mensajes desplazados (si no, se ve en su lugar de siempre).
+  readonly saludoFijo = signal(false);
+  alDesplazarConversacion(): void {
+    const c = this.conversacion()?.nativeElement;
+    this.saludoFijo.set(!!c && !this.listaAbajo() && this.menuResultados() && !!this.consulta().trim() && c.scrollTop > 1);
   }
 
   // ---------- Barra lateral en pantallas angostas (menú desplegable) ----------
@@ -758,6 +793,12 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   // ---------- Marco legal ----------
+  // Configuración → Vista desde el panel izquierdo: la misma ventana de la barra superior.
+  abrirVista(e: Event): void {
+    this.menuMovil.set(false);
+    this.panelConfig.abrir(e.currentTarget as HTMLElement);
+  }
+
   abrirMarco(e: Event): void {
     this.menuMovil.set(false);
     this.disparadorMarco = e.currentTarget as HTMLElement;

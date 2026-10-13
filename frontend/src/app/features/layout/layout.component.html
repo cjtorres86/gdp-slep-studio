@@ -6,8 +6,16 @@
   [class.h-dvh]="enInicio()"
   [class.min-h-screen]="!enInicio()"
   [class.con-imagen]="!!fondo()"
-  [style.--fondo-imagen]="fondo() ? 'url(' + fondo()!.archivo + ')' : null"
 >
+  <!-- Imágenes del fondo elegido, una sobre otra: la activa aparece con un
+       fundido (las de varios fondos se pasan cada 7 s). Encima, un velo claro. -->
+  @if (fondo(); as f) {
+    <div class="capas-fondo" aria-hidden="true">
+      @for (img of f.imagenes; track img.archivo; let k = $index) {
+        <div class="capa-fondo" [class.activa]="k === indiceImagen(f)" [style.background-image]="'url(' + img.archivo + ')'"></div>
+      }
+    </div>
+  }
   <!-- Encabezado a todo el ancho: el logo en la orilla izquierda y los botones
        en la derecha, como en las aplicaciones. -->
   <header class="panel-vidrio relative z-40 shrink-0 border-x-0 border-t-0">
@@ -130,25 +138,49 @@
           </div>
           <p class="mt-1 text-[13px] font-bold text-dep-navy">Fondo de pantalla</p>
           <p class="text-[12px] text-slate-600">Va detrás de las tarjetas y la conversación. Se guarda en tu cuenta.</p>
-          <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Fondo de pantalla">
-            <!-- El institucional de siempre -->
-            <button type="button" role="radio" [attr.aria-checked]="!fondo()" (click)="elegirFondo(null)" class="opcion-fondo" [class.elegida]="!fondo()">
-              <span class="miniatura miniatura-institucional" aria-hidden="true"></span>
-              <span class="block px-2.5 pb-2.5 pt-2 text-left">
-                <span class="block text-[12.5px] font-bold text-dep-navy">Institucional</span>
-                <span class="block text-[11px] text-slate-500">Colores de la marca, sin imagen</span>
-              </span>
-            </button>
-            @for (f of FONDOS; track f.id) {
-              <button type="button" role="radio" [attr.aria-checked]="fondo()?.id === f.id" (click)="elegirFondo(f.id)" class="opcion-fondo" [class.elegida]="fondo()?.id === f.id" [title]="f.descripcion">
-                <img class="miniatura" [src]="f.miniatura" [alt]="f.nombre" loading="lazy" />
+          <!-- Carrusel: tres tarjetas a la vista (una en celular); flechas a los
+               lados o deslizar para ver el resto. -->
+          <div class="relative mt-3">
+            <div
+              #carrusel
+              (scroll)="alDesplazarCarrusel()"
+              class="carrusel-fondos grid snap-x snap-mandatory auto-cols-[100%] grid-flow-col gap-3 overflow-x-auto pb-1 sm:auto-cols-[calc((100%-1.5rem)/3)]"
+              role="radiogroup"
+              aria-label="Fondo de pantalla"
+            >
+              <!-- El institucional de siempre -->
+              <button type="button" role="radio" [attr.aria-checked]="!fondo()" (click)="elegirFondo(null)" class="opcion-fondo snap-start" [class.elegida]="!fondo()">
+                <span class="miniatura miniatura-institucional" aria-hidden="true"></span>
                 <span class="block px-2.5 pb-2.5 pt-2 text-left">
-                  <span class="block text-[12.5px] font-bold text-dep-navy">{{ f.nombre }}</span>
-                  <span class="block text-[11px] font-bold text-dep-blue">{{ f.lugar }}</span>
-                  <span class="mt-0.5 block text-[11px] leading-snug text-slate-600">{{ f.descripcion }}</span>
+                  <span class="block text-[12.5px] font-bold text-dep-navy">{{ FONDO_INSTITUCIONAL.nombre }}</span>
+                  <span class="block text-[11px] font-bold text-dep-blue">{{ FONDO_INSTITUCIONAL.lugar }}</span>
+                  <span class="mt-0.5 block text-[11px] leading-snug text-slate-600">{{ FONDO_INSTITUCIONAL.descripcion }}</span>
                 </span>
               </button>
-            }
+              @for (f of FONDOS; track f.id) {
+                <button type="button" role="radio" [attr.aria-checked]="fondo()?.id === f.id" (click)="elegirFondo(f.id)" class="opcion-fondo snap-start" [class.elegida]="fondo()?.id === f.id">
+                  <span class="miniaturas">
+                    @for (img of f.imagenes; track img.miniatura; let k = $index) {
+                      <img class="miniatura" [class.activa]="k === indiceImagen(f)" [src]="img.miniatura" [alt]="k === 0 ? f.nombre : ''" loading="lazy" />
+                    }
+                    @if (f.imagenes.length > 1) {
+                      <span class="absolute bottom-1.5 right-1.5 bg-dep-navy/75 px-1.5 py-px text-[10px] font-bold text-white">{{ f.imagenes.length }} fotos</span>
+                    }
+                  </span>
+                  <span class="block px-2.5 pb-2.5 pt-2 text-left">
+                    <span class="block text-[12.5px] font-bold leading-snug text-dep-navy">{{ f.nombre }} · {{ f.region }}</span>
+                    <span class="block text-[11px] font-bold text-dep-blue">{{ f.lugar }}</span>
+                    <span class="mt-0.5 block text-[11px] leading-snug text-slate-600">{{ f.descripcion }}</span>
+                  </span>
+                </button>
+              }
+            </div>
+            <button type="button" (click)="moverCarrusel(-1)" [disabled]="!puedeIzquierda()" aria-label="Ver fondos anteriores" class="flecha-carrusel left-0 -translate-x-1/2">
+              <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6" /></svg>
+            </button>
+            <button type="button" (click)="moverCarrusel(1)" [disabled]="!puedeDerecha()" aria-label="Ver más fondos" class="flecha-carrusel right-0 translate-x-1/2">
+              <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
+            </button>
           </div>
         </section>
 

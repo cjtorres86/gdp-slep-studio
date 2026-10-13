@@ -157,16 +157,30 @@ html.plano [class*="shadow-"] { box-shadow: none !important; }
   pointer-events: none;
 }
 
-/* Configuración → Vista: fondo de pantalla elegido por la persona. Encima va
-   un velo claro suave (el texto siempre se lee, sea la foto clara u oscura) y
-   la imagen queda fija al desplazar. La retícula se oculta: compite con la foto. */
-.fondo-portal.con-imagen {
-  background:
-    linear-gradient(180deg, rgb(242 244 249 / 0.38), rgb(242 244 249 / 0.24)),
-    var(--fondo-imagen) center / cover no-repeat fixed,
-    #f2f4f9;
-}
+/* Configuración → Vista: fondo de pantalla elegido por la persona. Las
+   imágenes van en capas fijas detrás de todo (quedan quietas al desplazar);
+   la activa aparece con un fundido. Encima va un velo claro suave (el texto
+   siempre se lee, sea la foto clara u oscura). La retícula se oculta: compite
+   con la foto. */
+.fondo-portal.con-imagen { background: #f2f4f9; }
 .fondo-portal.con-imagen::before { display: none; }
+.capas-fondo { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+.capas-fondo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgb(242 244 249 / 0.38), rgb(242 244 249 / 0.24));
+}
+.capa-fondo {
+  position: absolute;
+  inset: 0;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 1.4s ease;
+}
+.capa-fondo.activa { opacity: 1; }
 /* Vidrio "extremo" sobre la foto: más desenfoque y saturación, para que las
    tarjetas, la barra lateral y la conversación floten sobre la imagen. */
 .con-imagen .panel-vidrio,
@@ -183,9 +197,31 @@ html.plano [class*="shadow-"] { box-shadow: none !important; }
   text-shadow: 0 0 18px rgb(255 255 255 / 0.95), 0 0 2px rgb(255 255 255 / 0.9);
 }
 
+/* Con la lista de resultados abierta en la conversación, el saludo queda fijo
+   arriba (la lista nunca lo tapa) y los mensajes pasan por debajo, esfumados. */
+/* top negativo: sticky respeta el padding de la conversación (pt-8); así el
+   saludo queda exactamente donde está siempre. */
+.saludo-fijo {
+  position: sticky;
+  top: -2rem;
+  z-index: 5;
+  margin-top: -2rem;
+  padding-top: 2rem;
+  padding-bottom: 1.25rem;
+  margin-bottom: -0.75rem;
+  background: rgb(242 244 249 / 0.82);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 1.25rem), transparent);
+  mask-image: linear-gradient(180deg, #000 calc(100% - 1.25rem), transparent);
+}
+.con-imagen .saludo-fijo { background: rgb(242 244 249 / 0.3); }
+
 /* Galería de fondos (ventana de Configuración). */
 .opcion-fondo {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
   overflow: hidden;
   text-align: left;
   background: rgb(255 255 255 / 0.55);
@@ -197,6 +233,33 @@ html.plano [class*="shadow-"] { box-shadow: none !important; }
 .opcion-fondo:hover { transform: translateY(-1px); background: rgb(255 255 255 / 0.8); }
 .opcion-fondo.elegida { box-shadow: 0 0 0 2px #006BB9; }
 .opcion-fondo .miniatura { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+/* Fondos con varias fotos: las miniaturas se pasan junto con el fondo. */
+.opcion-fondo .miniaturas { position: relative; display: block; aspect-ratio: 16 / 9; }
+.miniaturas .miniatura { position: absolute; inset: 0; height: 100%; opacity: 0; transition: opacity 1.4s ease; }
+.miniaturas .miniatura.activa { opacity: 1; }
+/* Carrusel de la galería: barra de desplazamiento fina; flechas a los lados. */
+.carrusel-fondos { scrollbar-width: thin; scrollbar-color: rgb(37 48 107 / 0.25) transparent; }
+.carrusel-fondos .opcion-fondo:hover { transform: none; }
+.flecha-carrusel {
+  position: absolute;
+  top: 2.25rem; /* a media altura de las fotos, sin tapar los títulos */
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  color: #25306B;
+  background: rgb(255 255 255 / 0.92);
+  border: 1px solid rgb(37 48 107 / 0.15);
+  box-shadow: 0 4px 14px -6px rgb(37 48 107 / 0.5);
+  cursor: pointer;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+.flecha-carrusel:hover { background: #ffffff; }
+.flecha-carrusel:disabled { opacity: 0; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) {
+  .capa-fondo, .miniaturas .miniatura { transition: none; }
+}
 .miniatura-institucional {
   background:
     radial-gradient(120px 80px at 10% 10%, rgb(58 191 240 / 0.45), transparent 70%),
