@@ -51,6 +51,15 @@ interface Dialogo {
 
 // Sin tildes ni mayúsculas, para comparar lo que escribe la persona.
 const normalizar = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+
+// Palabras de CATEGORÍA: solas muestran toda la categoría ("informe" → todos
+// los informes, "descargar" → todo lo que se puede descargar); junto a otra
+// palabra no filtran, decide la otra ("descargar ranking" → solo rankings).
+const PALABRAS_CATEGORIA = new Set(['informe', 'informes', 'reporte', 'reportes', 'descargar', 'descarga', 'descargas', 'bajar']);
+// Palabras de relleno: se ignoran siempre ("quiero ver el ranking").
+const PALABRAS_RELLENO = new Set(['ver', 'abrir', 'quiero', 'necesito', 'dame', 'el', 'la', 'los', 'las', 'un', 'una', 'de', 'del', 'me', 'por', 'favor', 'en', 'y', 'con']);
+// Sección del acordeón abierta, recordada en este navegador.
+const CLAVE_ACORDEON = 'gdp_portal_acordeon';
 const ETIQUETA_FORMATO: Record<InformeVista['formato'], string> = { excel: 'Excel', interactivo: 'Interactivo', pdf: 'PDF' };
 
 // Pantalla de inicio con forma de asistente (sin IA detrás): la persona
@@ -64,6 +73,8 @@ const ETIQUETA_FORMATO: Record<InformeVista['formato'], string> = { excel: 'Exce
   standalone: true,
   imports: [NgClass, NgTemplateOutlet],
   templateUrl: './home.component.html',
+  // Ocupa todo el alto bajo el encabezado: la barra de búsqueda queda abajo.
+  host: { class: 'flex min-h-0 flex-1 flex-col' },
 })
 export class HomeComponent implements OnInit, OnDestroy {
   private readonly catalogo = inject(CatalogoService);
@@ -92,18 +103,19 @@ export class HomeComponent implements OnInit, OnDestroy {
     const modulos = this.modulos();
     for (const modulo of modulos) {
       for (const app of modulo.aplicaciones) {
-        const puntaje = this.puntaje(app.nombre, app.descripcion, this.palabrasPorApp.get(app.id) ?? [], q, palabras);
-        if (puntaje > 0) lista.push({ tipo: 'app', id: app.id, nombre: app.nombre, descripcion: app.descripcion, modulo, app, puntaje: puntaje + 1 });
+        const puntaje = this.puntaje(app.nombre, this.palabrasPorApp.get(app.id) ?? [], q, palabras);
+        if (puntaje > 0) lista.push({ tipo: 'app', id: app.id, nombre: app.nombre, descripcion: app.descripcion, modulo, app, puntaje });
       }
     }
     for (const informe of this.informes()) {
       const modulo = modulos.find((m) => m.aplicaciones.some((a) => a.id === informe.aplicacionId));
       const app = modulo?.aplicaciones.find((a) => a.id === informe.aplicacionId);
       if (!modulo || !app) continue;
-      const puntaje = this.puntaje(informe.nombre, informe.descripcion, informe.palabrasClave.map(normalizar), q, palabras);
+      const puntaje = this.puntaje(informe.nombre, informe.palabrasClave.map(normalizar), q, palabras);
       if (puntaje > 0) lista.push({ tipo: 'informe', id: informe.id, nombre: informe.nombre, descripcion: informe.descripcion, modulo, informe, aplicacion: app.nombre, puntaje });
     }
-    return lista.sort((a, b) => b.puntaje - a.puntaje);
+    // A igual puntaje, primero los informes (lo que la persona suele buscar).
+    return lista.sort((a, b) => b.puntaje - a.puntaje || (a.tipo === b.tipo ? 0 : a.tipo === 'informe' ? -1 : 1));
   });
 
   // ---------- Conversación (historial de cada persona) ----------
@@ -125,8 +137,18 @@ export class HomeComponent implements OnInit, OnDestroy {
     });
   });
 
+  // Historial de búsquedas anteriores (del servidor), a la vista solo si se pide.
+  readonly historialGuardado = signal<Intercambio[]>([]);
+  readonly historialMostrado = signal(false);
+  // La conversación ya empezó: la barra baja y los mensajes suben (como una IA).
+  readonly iniciada = computed(() => this.intercambios().length > 0 || !!this.dialogo());
+
   // ---------- Barra lateral en pantallas angostas (menú desplegable) ----------
   readonly menuMovil = signal(false);
+
+  // ---------- Acordeón de la barra lateral: varias secciones abiertas a la vez,
+  // todas cerradas al entrar la primera vez; se recuerda en este navegador. ----------
+  readonly abiertas = signal<Set<string>>(this.leerAcordeon());
 
   // ---------- Ventana "Marco legal" ----------
   readonly marcoAbierto = signal(false);
@@ -138,12 +160,12 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    // Cada visita parte con la conversación vacía (barra al medio, como una
+    // IA); el historial guardado se muestra solo si la persona lo pide.
     this.http.get<BusquedaHistorial[]>(`${environment.apiUrl}/portal/busquedas`).subscribe({
       next: (lista) => {
         // El servidor manda las más recientes primero; la conversación se lee de arriba hacia abajo.
-        const previos = [...lista].reverse().map((b): Intercambio => ({ id: b.id, pregunta: b.texto, tipo: b.resultado, aplicacionId: b.aplicacionId }));
-        this.intercambios.update((actuales) => [...previos, ...actuales]);
-        this.bajarConversacion();
+        this.historialGuardado.set([...lista].reverse().map((b): Intercambio => ({ id: b.id, pregunta: b.texto, tipo: b.resultado, aplicacionId: b.aplicacionId })));
       },
     });
     this.http.get<InformeVista[]>(`${environment.apiUrl}/portal/informes`).subscribe({
@@ -167,29 +189,30 @@ export class HomeComponent implements OnInit, OnDestroy {
     return this.auth.usuario()?.nombreParaMostrar ?? '';
   }
 
-  // Coincidencia por nombre formal, palabras clave y descripción.
-  private puntaje(nombreOriginal: string, descripcionOriginal: string, claves: string[], q: string, palabras: string[]): number {
+  // Coincidencia por nombre formal y palabras clave (la descripción no cuenta:
+  // "ranking" no debe traer el Informe Interactivo solo porque lo menciona).
+  private puntaje(nombreOriginal: string, claves: string[], q: string, palabras: string[]): number {
     const nombre = normalizar(nombreOriginal);
-    const descripcion = normalizar(descripcionOriginal);
     if (nombre.startsWith(q)) return 100;
     if (nombre.includes(q)) return 80;
     if (claves.includes(q)) return 70;
     if (claves.some((c) => c.startsWith(q))) return 60;
-    if (claves.some((c) => c.includes(q)) || descripcion.includes(q)) return 40;
-    // Varias palabras (ej. "ranking julio 2026"): basta con que la mayoría
-    // aparezca; los meses, años y SLEP se usan después como respuestas.
-    // Pesa más que la palabra esté en el nombre que en las claves, y más en
-    // las claves que en la descripción.
-    const utiles = palabras.filter((p) => p.length > 2 && !MESES.includes(p) && !/^\d{4}$/.test(p));
+    if (claves.some((c) => c.includes(q))) return 40;
+    // Varias palabras (ej. "descargar ranking julio 2026"): los meses y años
+    // se usan después como respuestas; las palabras de categoría solo cuentan
+    // si van solas. Cada palabra que queda debe aparecer: pesa más en el
+    // nombre que en las palabras clave.
+    const utiles = palabras.filter((p) => !PALABRAS_RELLENO.has(p) && !MESES.includes(p) && !/^\d{4}$/.test(p));
+    const especificas = utiles.filter((p) => !PALABRAS_CATEGORIA.has(p));
+    const buscar = especificas.length ? especificas : utiles;
     let suma = 0;
-    for (const p of utiles) {
+    for (const p of buscar) {
       if (nombre.includes(p)) suma += 6;
       else if (claves.some((c) => c === p)) suma += 4;
       else if (claves.some((c) => c.includes(p))) suma += 2;
-      else if (descripcion.includes(p)) suma += 1;
       else return 0;
     }
-    return utiles.length ? 20 + suma : 0;
+    return buscar.length ? 20 + suma : 0;
   }
 
   // Para lectores de pantalla: qué opción de la lista está marcada.
@@ -204,13 +227,15 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.menuResultados.set(!!valor.trim());
   }
 
+  // La lista de resultados se abre HACIA ARRIBA de la barra, con el mejor
+  // resultado pegado a ella: ↑ sube al siguiente resultado, ↓ vuelve.
   alPresionarEnCampo(e: KeyboardEvent): void {
     const n = this.resultados().length;
-    if (e.key === 'ArrowDown' && n) {
+    if (e.key === 'ArrowUp' && n) {
       e.preventDefault();
       this.menuResultados.set(true);
       this.indiceActivo.update((i) => (i + 1) % n);
-    } else if (e.key === 'ArrowUp' && n) {
+    } else if (e.key === 'ArrowDown' && n) {
       e.preventDefault();
       this.indiceActivo.update((i) => (i - 1 + n) % n);
     } else if (e.key === 'Escape') {
@@ -506,13 +531,62 @@ export class HomeComponent implements OnInit, OnDestroy {
     });
   }
 
+  // Trae las búsquedas anteriores a la conversación (arriba de lo actual).
+  verHistorial(): void {
+    if (this.historialMostrado()) return;
+    this.historialMostrado.set(true);
+    this.intercambios.update((actuales) => [...this.historialGuardado(), ...actuales]);
+    this.bajarConversacion();
+  }
+
+  // Empieza una conversación nueva (la barra vuelve al medio). No borra nada guardado.
+  nuevaConversacion(): void {
+    if (this.bloqueada()) return;
+    this.intercambios.set([]);
+    this.dialogo.set(null);
+    this.historialMostrado.set(false);
+    this.consulta.set('');
+  }
+
   borrarHistorial(): void {
     this.http.delete(`${environment.apiUrl}/portal/busquedas`).subscribe({
       next: () => {
         this.intercambios.set([]);
+        this.historialGuardado.set([]);
         this.dialogo.set(null);
       },
     });
+  }
+
+  // ---------- Acordeón ----------
+  alternarSeccion(id: string): void {
+    this.abiertas.update((s) => {
+      const nuevo = new Set(s);
+      if (nuevo.has(id)) nuevo.delete(id);
+      else nuevo.add(id);
+      try {
+        localStorage.setItem(CLAVE_ACORDEON, JSON.stringify([...nuevo]));
+      } catch {
+        /* sin almacenamiento del navegador: solo no se recuerda */
+      }
+      return nuevo;
+    });
+  }
+
+  private leerAcordeon(): Set<string> {
+    try {
+      const guardado = JSON.parse(localStorage.getItem(CLAVE_ACORDEON) ?? '[]');
+      return new Set(Array.isArray(guardado) ? guardado.filter((x): x is string => typeof x === 'string') : []);
+    } catch {
+      return new Set();
+    }
+  }
+
+  // Etiqueta de tipo de cada aplicación en el acordeón.
+  etiquetaTipo(moduloId: string): string {
+    if (moduloId === 'automatizacion') return 'Automatización';
+    if (moduloId === 'configuracion') return 'Configuración';
+    return 'App';
   }
 
   // ---------- Conversación ----------
@@ -550,10 +624,11 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.intercambios.update((lista) => lista.filter((x) => x.id !== id));
   }
 
+  // Al aparecer un mensaje, la conversación sube y deja ver lo último junto a la barra.
   private bajarConversacion(): void {
     setTimeout(() => {
       const c = this.conversacion()?.nativeElement;
-      if (c) c.scrollTop = c.scrollHeight;
+      c?.lastElementChild?.scrollIntoView({ block: 'end', behavior: 'smooth' });
     });
   }
 

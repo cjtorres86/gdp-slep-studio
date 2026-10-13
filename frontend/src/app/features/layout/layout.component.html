@@ -1,17 +1,23 @@
-<div class="fondo-portal flex min-h-screen flex-col">
+<!-- En el inicio (asistente) la página ocupa justo el alto de la ventana: la
+     barra de búsqueda queda abajo y la conversación sube, como en una IA. -->
+<div class="fondo-portal flex flex-col" [class.h-dvh]="enInicio()" [class.min-h-screen]="!enInicio()">
   <!-- Encabezado a todo el ancho: el logo en la orilla izquierda y los botones
        en la derecha, como en las aplicaciones. -->
-  <header class="panel-vidrio relative z-40 border-x-0 border-t-0">
+  <header class="panel-vidrio relative z-40 shrink-0 border-x-0 border-t-0">
     <div class="barra-marca" aria-hidden="true"></div>
-    <div class="flex items-center gap-4 px-4 py-3 sm:px-6 lg:px-10">
-      <img src="logo-dep.png" alt="Educación Pública — Ministerio de Educación" class="h-14 w-auto select-none" draggable="false" />
-      <span class="hidden h-9 w-px bg-[#dfe4ee] sm:block" aria-hidden="true"></span>
-      <div class="hidden leading-tight sm:block">
-        <p class="font-display text-[17px] font-extrabold tracking-tight text-dep-navy">GDP - SLEP Studio</p>
-        <p class="text-[10.5px] font-bold uppercase tracking-[0.14em] text-dep-blue">Portal de aplicaciones</p>
+    <div class="flex items-stretch gap-4 pr-4 sm:pr-6 lg:pr-10">
+      <!-- Zona del logo en blanco puro (el mismo blanco de la imagen), para que
+           el logo no se vea como un recorte pegado; se desvanece hacia la derecha. -->
+      <div class="zona-logo flex items-center gap-4 py-3 pl-4 pr-10 sm:pl-6 lg:pl-10">
+        <img src="logo-dep.png" alt="Educación Pública — Ministerio de Educación" class="h-14 w-auto select-none" draggable="false" />
+        <span class="hidden h-9 w-px bg-[#dfe4ee] sm:block" aria-hidden="true"></span>
+        <div class="hidden leading-tight sm:block">
+          <p class="font-display text-[17px] font-extrabold tracking-tight text-dep-navy">GDP - SLEP Studio</p>
+          <p class="text-[10.5px] font-bold uppercase tracking-[0.14em] text-dep-blue">Portal de aplicaciones</p>
+        </div>
       </div>
 
-      <div class="ml-auto flex items-center gap-2 sm:gap-4">
+      <div class="ml-auto flex items-center gap-2 py-3 sm:gap-4">
         <nav class="flex items-center gap-1 sm:gap-2" aria-label="Navegación del portal">
           <a
             routerLink="/"
@@ -62,15 +68,18 @@
     </div>
   </header>
 
-  <div class="flex-1">
+  <div class="flex min-h-0 flex-1 flex-col">
     <router-outlet />
   </div>
 
-  <footer class="panel-vidrio border-x-0 border-b-0">
-    <p class="px-4 py-4 text-[11.5px] text-slate-500 sm:px-6 lg:px-10">
-      GDP - Gestión y Desarrollo de Personas · Dirección de Educación Pública · Ministerio de Educación
-    </p>
-  </footer>
+  <!-- El pie no va en el inicio: ahí la barra de búsqueda es lo último. -->
+  @if (!enInicio()) {
+    <footer class="panel-vidrio border-x-0 border-b-0">
+      <p class="px-4 py-4 text-[11.5px] text-slate-500 sm:px-6 lg:px-10">
+        GDP - Gestión y Desarrollo de Personas · Dirección de Educación Pública · Ministerio de Educación
+      </p>
+    </footer>
+  }
   @if (configAbierta() && configuracion(); as c) {
     <div class="fixed inset-0 z-50 grid place-items-center p-4" (click)="cerrarConfig()">
       <!-- Fondo: la página se ve difuminada detrás, con manchas de los colores de la marca. -->

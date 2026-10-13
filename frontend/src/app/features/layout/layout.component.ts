@@ -1,6 +1,8 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, ElementRef, HostListener, OnInit, inject, signal, viewChild } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { filter, map } from 'rxjs';
 import { AuthService } from '../../core/auth.service';
 import { CatalogoService } from '../../core/catalogo.service';
 import { RolPortal } from '../../core/models';
@@ -25,6 +27,15 @@ export class LayoutComponent implements OnInit {
   private readonly catalogo = inject(CatalogoService);
   readonly configuracion = this.catalogo.configuracion;
   readonly configAbierta = signal(false);
+  // ¿Estamos en el inicio (asistente)? Ahí la página mide el alto de la ventana y no lleva pie.
+  private readonly router = inject(Router);
+  readonly enInicio = toSignal(
+    this.router.events.pipe(
+      filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+      map((e) => e.urlAfterRedirects.split(/[?#]/)[0] === '/'),
+    ),
+    { initialValue: this.router.url.split(/[?#]/)[0] === '/' },
+  );
   private readonly botonConfig = viewChild<ElementRef<HTMLButtonElement>>('botonConfig');
   private readonly ventanaConfig = viewChild<ElementRef<HTMLElement>>('ventanaConfig');
 

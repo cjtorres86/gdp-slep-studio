@@ -26,11 +26,13 @@ export const CATALOGO_ASISTENTE: EntradaCatalogo[] = [
   },
   {
     id: 'doc_proyecto',
-    palabras_clave: ['documentacion', 'documentación', 'proyecto', 'informe', 'informes', 'tecnico', 'técnico'],
+    // "descargar": sus informes técnicos se pueden descargar.
+    palabras_clave: ['documentacion', 'documentación', 'proyecto', 'informe', 'informes', 'tecnico', 'técnico', 'descargar', 'descarga', 'descargas'],
   },
   {
     id: 'doc_marco_legal',
-    palabras_clave: ['ley', 'legal', 'marco', 'marco legal', 'normativa', 'norma', 'documento', 'pdf', '21.180', '21.663', 'circular'],
+    // "descargar": tiene descarga de los textos oficiales.
+    palabras_clave: ['ley', 'legal', 'marco', 'marco legal', 'normativa', 'norma', 'documento', 'pdf', '21.180', '21.663', 'circular', 'descargar', 'descarga', 'descargas'],
   },
   {
     id: 'config_usuarios',

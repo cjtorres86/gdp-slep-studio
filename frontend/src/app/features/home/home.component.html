@@ -1,8 +1,10 @@
-  <main class="grid w-full flex-1 lg:grid-cols-[300px_minmax(0,1fr)]">
+  <!-- En celular: menú de aplicaciones arriba y el asistente en el resto del alto. -->
+  <main class="grid min-h-0 w-full flex-1 grid-rows-[auto_minmax(0,1fr)] lg:grid-cols-[300px_minmax(0,1fr)] lg:grid-rows-1">
 
-    <!-- Aplicaciones: barra lateral izquierda (solo para entrar a las
-         aplicaciones). En pantallas angostas va arriba, como menú desplegable. -->
-    <aside class="panel-vidrio border-y-0 border-l-0 lg:min-h-full" aria-label="Aplicaciones del portal">
+    <!-- Aplicaciones: barra lateral izquierda en forma de acordeón (solo para
+         entrar a las aplicaciones). En pantallas angostas va arriba, como menú
+         desplegable. -->
+    <aside class="panel-vidrio flex min-h-0 flex-col border-y-0 border-l-0 lg:overflow-y-auto" aria-label="Aplicaciones del portal">
       <button
         type="button"
         (click)="menuMovil.set(!menuMovil())"
@@ -17,7 +19,7 @@
         <svg class="size-4 transition" [class.rotate-180]="menuMovil()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
       </button>
 
-      <div id="panel-aplicaciones" class="lg:sticky lg:top-0 lg:block" [class.hidden]="!menuMovil()">
+      <div id="panel-aplicaciones" class="max-h-[60vh] flex-col overflow-y-auto lg:flex lg:max-h-none lg:flex-1 lg:overflow-visible" [class.hidden]="!menuMovil()" [class.flex]="menuMovil()">
         <p class="hidden px-6 pb-3 pt-6 text-[11px] font-bold uppercase tracking-[0.16em] text-dep-blue lg:block">Aplicaciones</p>
         <div class="linea-desvanecida" aria-hidden="true"></div>
         @switch (estado()) {
@@ -33,114 +35,155 @@
             </div>
           }
           @case ('listo') {
-            @for (m of modulos(); track m.id; let ultimo = $last) {
-              <section class="px-5 py-4" [attr.aria-labelledby]="'lat-' + m.id">
-                <header class="mb-2 flex items-center gap-2.5">
-                  <ng-container *ngTemplateOutlet="icono; context: { $implicit: m.icono, color: m.color, chico: true }" />
-                  <h2 [id]="'lat-' + m.id" class="font-display text-[11.5px] font-extrabold uppercase tracking-[0.08em] text-dep-navy">{{ m.nombre }}</h2>
-                </header>
-                <ul class="flex flex-col">
-                  @for (a of m.aplicaciones; track a.id) {
-                    <li class="border-b border-dep-navy/[0.07] last:border-b-0">
-                      @if (a.estado !== 'activa') {
-                        <div class="border-l-[3px] border-dashed border-l-slate-300 py-2 pl-3 pr-1" aria-disabled="true">
-                          <p class="text-[13px] font-bold leading-snug text-dep-navy/45">{{ a.nombre }}</p>
-                          <div class="mt-1"><ng-container *ngTemplateOutlet="insignia; context: { $implicit: a }" /></div>
-                        </div>
-                      } @else if (a.autorizado && a.url) {
-                        <a
-                          [href]="a.url"
-                          (click)="entrar($event, a)"
-                          [attr.target]="a.url.startsWith('/') ? null : '_blank'"
-                          [attr.rel]="a.url.startsWith('/') ? null : 'noopener'"
-                          class="group block border-l-[3px] py-2 pl-3 pr-1 transition hover:bg-white/70"
-                          [style.border-left-color]="m.color"
-                        >
-                          <div class="flex items-start justify-between gap-2">
-                            <p class="text-[13px] font-bold leading-snug text-dep-navy group-hover:text-dep-blue">{{ a.nombre }}</p>
-                            <svg class="mt-0.5 size-4 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-dep-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+            @for (m of modulos(); track m.id) {
+              <section class="border-b border-dashed border-dep-navy/15" [attr.aria-labelledby]="'lat-' + m.id">
+                <!-- Título de la sección: abre y cierra (pueden quedar varias abiertas). -->
+                <h2 class="m-0">
+                  <button
+                    type="button"
+                    [id]="'lat-' + m.id"
+                    (click)="alternarSeccion(m.id)"
+                    [attr.aria-expanded]="abiertas().has(m.id)"
+                    [attr.aria-controls]="'sec-' + m.id"
+                    class="flex w-full items-center gap-2.5 px-5 py-3.5 text-left transition hover:bg-white/60 cursor-pointer"
+                  >
+                    <ng-container *ngTemplateOutlet="icono; context: { $implicit: m.icono, color: m.color, chico: true }" />
+                    <span class="flex-1 font-display text-[11.5px] font-extrabold uppercase tracking-[0.08em] text-dep-navy">{{ m.nombre }}</span>
+                    <span class="text-[10.5px] font-bold text-slate-400">{{ m.aplicaciones.length }}</span>
+                    <svg class="size-4 text-slate-500 transition" [class.rotate-180]="abiertas().has(m.id)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+                  </button>
+                </h2>
+                @if (abiertas().has(m.id)) {
+                  <ul [id]="'sec-' + m.id" class="flex flex-col px-5 pb-3">
+                    @for (a of m.aplicaciones; track a.id) {
+                      <li class="border-b border-dep-navy/[0.07] last:border-b-0">
+                        @if (a.estado !== 'activa') {
+                          <div class="border-l-[3px] border-dashed border-l-slate-300 py-2 pl-3 pr-1" aria-disabled="true">
+                            <p class="text-[13px] font-bold leading-snug text-dep-navy/45">{{ a.nombre }}</p>
+                            <div class="mt-1 flex flex-wrap items-center gap-1.5">
+                              <ng-container *ngTemplateOutlet="tipoApp; context: { $implicit: m.id }" />
+                              <ng-container *ngTemplateOutlet="insignia; context: { $implicit: a }" />
+                            </div>
                           </div>
-                          <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <ng-container *ngTemplateOutlet="insignia; context: { $implicit: a }" />
-                            @if (a.rol) { <span class="border border-dep-navy/15 px-1.5 py-px text-[10px] font-bold text-dep-navy">Rol: {{ a.rol }}</span> }
-                            @if (textoAlcance(a.alcance); as alcance) { <span class="text-[10.5px] text-slate-500">{{ alcance }}</span> }
-                          </div>
-                        </a>
-                      } @else {
-                        <!-- Sin autorización: se ve igual, pero el asistente explica por qué no se abre. -->
-                        <button type="button" (click)="entrar($event, a)" class="group block w-full border-l-[3px] py-2 pl-3 pr-1 text-left transition hover:bg-white/70 cursor-pointer" [style.border-left-color]="m.color">
-                          <div class="flex items-start justify-between gap-2">
-                            <p class="text-[13px] font-bold leading-snug text-dep-navy">{{ a.nombre }}</p>
-                            <svg class="mt-0.5 size-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
-                          </div>
-                          <div class="mt-1"><ng-container *ngTemplateOutlet="insignia; context: { $implicit: a }" /></div>
-                        </button>
-                      }
-                    </li>
-                  }
-                </ul>
-
-                <!-- Respaldo normativo: al pie de Documentación. -->
-                @if (m.id === 'documentacion') {
-                  <footer class="linea-punteada mt-3 pt-3">
-                    <p class="flex items-start gap-2 text-[11px] font-bold leading-snug text-dep-navy">
-                      <svg class="mt-px size-4 shrink-0 text-[#1d9fd0]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v5c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6z" /><path d="m9 12 2 2 4-4" /></svg>
-                      Marco normativo que exige registros y documentación de los sistemas
-                    </p>
-                    <ul class="mt-2 flex flex-wrap gap-1.5" aria-label="Normas que respaldan este módulo">
-                      @for (n of ['Ley 21.180', 'DS 7, 10 y 11/2023', 'Ley 21.663']; track n) {
-                        <li class="border border-[#3abff0]/40 bg-[#eefaff]/70 px-1.5 py-px text-[10px] font-bold text-[#0a6d93]">{{ n }}</li>
-                      }
-                    </ul>
-                    <button type="button" (click)="abrirMarco($event)" aria-haspopup="dialog" class="mt-2 inline-flex items-center gap-1 text-[12px] font-bold text-dep-blue underline-offset-2 hover:underline cursor-pointer">
-                      Ver marco legal
-                      <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-                    </button>
-                  </footer>
+                        } @else if (a.autorizado && a.url) {
+                          <a
+                            [href]="a.url"
+                            (click)="entrar($event, a)"
+                            [attr.target]="a.url.startsWith('/') ? null : '_blank'"
+                            [attr.rel]="a.url.startsWith('/') ? null : 'noopener'"
+                            class="group block border-l-[3px] py-2 pl-3 pr-1 transition hover:bg-white/70"
+                            [style.border-left-color]="m.color"
+                          >
+                            <div class="flex items-start justify-between gap-2">
+                              <p class="text-[13px] font-bold leading-snug text-dep-navy group-hover:text-dep-blue">{{ a.nombre }}</p>
+                              <svg class="mt-0.5 size-4 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-dep-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                            </div>
+                            <div class="mt-1 flex flex-wrap items-center gap-1.5">
+                              <ng-container *ngTemplateOutlet="tipoApp; context: { $implicit: m.id }" />
+                              <ng-container *ngTemplateOutlet="insignia; context: { $implicit: a }" />
+                              @if (a.rol) { <span class="border border-dep-navy/15 px-1.5 py-px text-[10px] font-bold text-dep-navy">Rol: {{ a.rol }}</span> }
+                              @if (textoAlcance(a.alcance); as alcance) { <span class="text-[10.5px] text-slate-500">{{ alcance }}</span> }
+                            </div>
+                          </a>
+                        } @else {
+                          <!-- Sin autorización: se ve igual, pero el asistente explica por qué no se abre. -->
+                          <button type="button" (click)="entrar($event, a)" class="group block w-full border-l-[3px] py-2 pl-3 pr-1 text-left transition hover:bg-white/70 cursor-pointer" [style.border-left-color]="m.color">
+                            <div class="flex items-start justify-between gap-2">
+                              <p class="text-[13px] font-bold leading-snug text-dep-navy">{{ a.nombre }}</p>
+                              <svg class="mt-0.5 size-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+                            </div>
+                            <div class="mt-1 flex flex-wrap items-center gap-1.5">
+                              <ng-container *ngTemplateOutlet="tipoApp; context: { $implicit: m.id }" />
+                              <ng-container *ngTemplateOutlet="insignia; context: { $implicit: a }" />
+                            </div>
+                          </button>
+                        }
+                      </li>
+                    }
+                  </ul>
                 }
               </section>
-              @if (!ultimo) { <div class="linea-punteada mx-5" aria-hidden="true"></div> }
             }
+
+            <!-- Respaldo normativo: siempre al final de la columna. -->
+            <footer class="mt-auto px-5 py-4">
+              <p class="flex items-start gap-2 text-[11px] font-bold leading-snug text-dep-navy">
+                <svg class="mt-px size-4 shrink-0 text-[#1d9fd0]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v5c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6z" /><path d="m9 12 2 2 4-4" /></svg>
+                Marco normativo que exige registros y documentación de los sistemas
+              </p>
+              <ul class="mt-2 flex flex-wrap gap-1.5" aria-label="Normas que respaldan el portal">
+                @for (n of ['Ley 21.180', 'DS 7, 10 y 11/2023', 'Ley 21.663']; track n) {
+                  <li class="border border-[#3abff0]/40 bg-[#eefaff]/70 px-1.5 py-px text-[10px] font-bold text-[#0a6d93]">{{ n }}</li>
+                }
+              </ul>
+              <button type="button" (click)="abrirMarco($event)" aria-haspopup="dialog" class="mt-2 inline-flex items-center gap-1 text-[12px] font-bold text-dep-blue underline-offset-2 hover:underline cursor-pointer">
+                Ver marco legal
+                <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+              </button>
+            </footer>
           }
         }
       </div>
     </aside>
 
-    <!-- Centro: el asistente -->
-    <section class="flex min-w-0 flex-col gap-5 px-4 py-8 sm:px-6 lg:px-12" aria-labelledby="titulo-asistente">
-      <div>
-        <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-dep-blue">Asistente del portal</p>
-        <h1 id="titulo-asistente" class="mt-1 font-display text-[30px] font-extrabold leading-tight tracking-tight text-dep-navy">Hola, {{ nombre }}</h1>
-        <p class="mt-1 text-[14px] text-slate-600">Escribe lo que necesitas: te llevo a la aplicación o te preparo el informe.</p>
-        <div class="linea-desvanecida mt-5" aria-hidden="true"></div>
+    <!-- Centro: el asistente, sin tarjetas. Al entrar, el saludo y la barra van
+         al medio; con la primera consulta la barra baja y la conversación sube. -->
+    <section class="flex min-h-0 min-w-0 flex-col px-4 sm:px-6 lg:px-12" aria-labelledby="titulo-asistente">
+      @if (!iniciada()) { <div class="min-h-6 flex-1" aria-hidden="true"></div> }
+
+      <!-- Conversación flotante (sin contenedor): saludo arriba a la izquierda y burbujas. -->
+      <div #conversacion class="flex min-h-0 flex-col gap-3 overflow-y-auto pt-8" [class.flex-1]="iniciada()" role="log" aria-live="polite" aria-label="Conversación con el asistente">
+        <div class="pb-2">
+          <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-dep-blue">Asistente del portal</p>
+          <h1 id="titulo-asistente" class="mt-1 font-display font-extrabold leading-tight tracking-tight text-dep-navy" [ngClass]="iniciada() ? 'text-[26px]' : 'text-[34px]'">Hola, {{ nombre }}</h1>
+          <p class="mt-1 text-[14px] text-slate-600">Escribe lo que necesitas: te llevo a la aplicación o te preparo el informe.</p>
+        </div>
+        @for (i of visibles(); track i.id) {
+          @if (i.pregunta) {
+            <div class="flex justify-end">
+              <p class="max-w-[80%] bg-dep-navy px-4 py-2 text-[13.5px] text-white">{{ i.pregunta }}</p>
+            </div>
+          }
+          @if (i.texto) { <ng-container *ngTemplateOutlet="burbuja; context: { $implicit: i }" /> }
+        }
       </div>
 
-      <!-- Conversación: lo que escribió la persona y lo que respondió el asistente. -->
-      <div class="panel-vidrio">
-        <div class="flex items-center justify-between px-5 py-2.5">
-          <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Historial de búsquedas</p>
-          @if (intercambios().length) {
-            <button type="button" (click)="borrarHistorial()" class="text-[11.5px] font-bold text-slate-500 underline-offset-2 hover:text-dep-red hover:underline cursor-pointer">Borrar historial</button>
-          }
-        </div>
-        <div class="linea-desvanecida" aria-hidden="true"></div>
-        <div #conversacion class="flex max-h-[52vh] min-h-[260px] flex-col gap-3 overflow-y-auto px-5 py-4" role="log" aria-live="polite" aria-label="Conversación con el asistente">
-          @if (!visibles().length) {
-            <ng-container *ngTemplateOutlet="burbuja; context: { $implicit: { id: 'bienvenida', tipo: 'bienvenida', titulo: '', texto: 'Hola, ' + nombre + '. ¿Qué necesitas hacer hoy? Puedes escribir, por ejemplo, «reporte», «ranking julio 2026», «licencia» o «documentación».' } }" />
-          }
-          @for (i of visibles(); track i.id) {
-            @if (i.pregunta) {
-              <div class="flex justify-end">
-                <p class="max-w-[80%] bg-dep-navy px-4 py-2 text-[13.5px] text-white">{{ i.pregunta }}</p>
-              </div>
+      <!-- Barra de búsqueda tipo "prompt" (abajo una vez iniciada la conversación). -->
+      <div class="relative shrink-0 pb-6 pt-4" data-busqueda>
+        @if (menuResultados() && consulta().trim() && !dialogo()) {
+          <!-- Resultados HACIA ARRIBA: el mejor queda pegado a la barra. -->
+          <ul id="resultados-asistente" role="listbox" class="panel-vidrio absolute bottom-full left-0 right-0 z-30 mb-[-0.75rem] flex max-h-[min(380px,55vh)] flex-col-reverse overflow-y-auto py-1" style="background: rgb(255 255 255 / 0.9)">
+            @for (r of resultados(); track r.id; let k = $index) {
+              <li role="option" [id]="'res-' + r.id" [attr.aria-selected]="k === indiceActivo()" class="border-t border-dep-navy/[0.07] last:border-t-0">
+                <button
+                  type="button"
+                  (click)="elegir(r)"
+                  (mouseenter)="indiceActivo.set(k)"
+                  class="flex w-full items-start gap-3 border-l-[3px] px-4 py-2.5 text-left transition cursor-pointer"
+                  [ngClass]="k === indiceActivo() ? 'bg-dep-navy/[0.06]' : ''"
+                  [style.border-left-color]="k === indiceActivo() ? r.modulo.color : 'transparent'"
+                >
+                  <ng-container *ngTemplateOutlet="icono; context: { $implicit: r.modulo.icono, color: r.modulo.color, chico: false }" />
+                  <span class="min-w-0 flex-1">
+                    <span class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span class="text-[14px] font-bold text-dep-navy">{{ r.nombre }}</span>
+                      @if (r.tipo === 'app') {
+                        <ng-container *ngTemplateOutlet="insignia; context: { $implicit: r.app }" />
+                      } @else {
+                        <span class="border border-dep-navy/20 px-1.5 py-px text-[10px] font-bold uppercase tracking-wider text-dep-navy">{{ ETIQUETA_FORMATO[r.informe.formato] }}</span>
+                        @if (!r.informe.autorizado) { <ng-container *ngTemplateOutlet="candado" /> }
+                      }
+                    </span>
+                    <span class="mt-0.5 block text-[12.5px] leading-snug text-slate-600">{{ r.descripcion }}</span>
+                    <span class="mt-0.5 block text-[10.5px] font-bold uppercase tracking-wider text-slate-400">{{ r.tipo === 'app' ? r.modulo.nombre : 'Informe · ' + r.aplicacion }}</span>
+                  </span>
+                </button>
+              </li>
+            } @empty {
+              <li class="px-4 py-3 text-[13px] text-slate-500">No encontré nada con ese texto. Presiona Enter y te respondo.</li>
             }
-            @if (i.texto) { <ng-container *ngTemplateOutlet="burbuja; context: { $implicit: i }" /> }
-          }
-        </div>
-      </div>
-
-      <!-- Barra de búsqueda tipo "prompt" -->
-      <div class="relative" data-busqueda>
+          </ul>
+        }
         <div class="panel-vidrio flex items-center gap-3 border-b-2 border-b-dep-navy/30 px-4 py-3 transition focus-within:border-b-dep-blue" [class.opacity-70]="bloqueada()">
           @if (bloqueada()) {
             <ng-container *ngTemplateOutlet="spinner" />
@@ -177,45 +220,26 @@
             <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
           </button>
         </div>
-
-        @if (menuResultados() && consulta().trim() && !dialogo()) {
-          <ul id="resultados-asistente" role="listbox" class="panel-vidrio absolute left-0 right-0 top-full z-30 mt-1 max-h-[380px] overflow-y-auto py-1" style="background: rgb(255 255 255 / 0.86)">
-            @for (r of resultados(); track r.id; let k = $index) {
-              <li role="option" [id]="'res-' + r.id" [attr.aria-selected]="k === indiceActivo()" class="border-b border-dep-navy/[0.07] last:border-b-0">
-                <button
-                  type="button"
-                  (click)="elegir(r)"
-                  (mouseenter)="indiceActivo.set(k)"
-                  class="flex w-full items-start gap-3 border-l-[3px] px-4 py-2.5 text-left transition cursor-pointer"
-                  [ngClass]="k === indiceActivo() ? 'bg-dep-navy/[0.06]' : ''"
-                  [style.border-left-color]="k === indiceActivo() ? r.modulo.color : 'transparent'"
-                >
-                  <ng-container *ngTemplateOutlet="icono; context: { $implicit: r.modulo.icono, color: r.modulo.color, chico: false }" />
-                  <span class="min-w-0 flex-1">
-                    <span class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <span class="text-[14px] font-bold text-dep-navy">{{ r.nombre }}</span>
-                      @if (r.tipo === 'app') {
-                        <ng-container *ngTemplateOutlet="insignia; context: { $implicit: r.app }" />
-                      } @else {
-                        <span class="border border-dep-navy/20 px-1.5 py-px text-[10px] font-bold uppercase tracking-wider text-dep-navy">{{ ETIQUETA_FORMATO[r.informe.formato] }}</span>
-                        @if (!r.informe.autorizado) { <ng-container *ngTemplateOutlet="candado" /> }
-                      }
-                    </span>
-                    <span class="mt-0.5 block text-[12.5px] leading-snug text-slate-600">{{ r.descripcion }}</span>
-                    <span class="mt-0.5 block text-[10.5px] font-bold uppercase tracking-wider text-slate-400">{{ r.tipo === 'app' ? r.modulo.nombre : 'Informe · ' + r.aplicacion }}</span>
-                  </span>
-                </button>
-              </li>
-            } @empty {
-              <li class="px-4 py-3 text-[13px] text-slate-500">No encontré nada con ese texto. Presiona Enter y te respondo.</li>
+        <div class="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-1 text-[11.5px] text-slate-500">
+          <p>
+            @if (dialogo()) { Elige una opción de la pregunta, o escríbela y presiona Enter · «cancelar» para salir }
+            @else { Enter abre el primer resultado · ↑ ↓ para elegir · Esc para cerrar la lista }
+          </p>
+          <div class="flex items-center gap-3">
+            @if (historialGuardado().length && !historialMostrado()) {
+              <button type="button" (click)="verHistorial()" class="font-bold text-dep-blue underline-offset-2 hover:underline cursor-pointer">Ver historial de búsquedas ({{ historialGuardado().length }})</button>
             }
-          </ul>
-        }
-        <p class="mt-2 px-1 text-[11.5px] text-slate-500">
-          @if (dialogo()) { Elige una opción de la pregunta, o escríbela y presiona Enter · «cancelar» para salir }
-          @else { Enter abre el primer resultado · ↑ ↓ para elegir · Esc para cerrar la lista }
-        </p>
+            @if (iniciada()) {
+              <button type="button" (click)="nuevaConversacion()" class="font-bold text-dep-navy underline-offset-2 hover:underline cursor-pointer">Nueva conversación</button>
+            }
+            @if (historialGuardado().length || intercambios().length) {
+              <button type="button" (click)="borrarHistorial()" class="font-bold text-slate-500 underline-offset-2 hover:text-dep-red hover:underline cursor-pointer">Borrar historial</button>
+            }
+          </div>
+        </div>
       </div>
+
+      @if (!iniciada()) { <div class="flex-[1.4]" aria-hidden="true"></div> }
     </section>
   </main>
 
@@ -330,6 +354,11 @@
     <span class="inline-flex items-center gap-1.5 border border-[#6aa81a]/30 bg-[#eaf6dc]/80 px-1.5 py-px text-[10px] font-bold text-[#47710f]"><span class="size-1.5 rounded-full bg-[#6aa81a]"></span> Disponible</span>
     @if (!a.autorizado) { <ng-container *ngTemplateOutlet="candado" /> }
   }
+</ng-template>
+
+<!-- Tipo de la aplicación en el acordeón: App, Automatización o Configuración. -->
+<ng-template #tipoApp let-moduloId>
+  <span class="border border-dep-navy/25 bg-white/60 px-1.5 py-px text-[10px] font-bold uppercase tracking-wider text-dep-navy">{{ etiquetaTipo(moduloId) }}</span>
 </ng-template>
 
 <ng-template #candado>
