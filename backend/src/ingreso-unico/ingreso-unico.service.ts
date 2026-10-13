@@ -25,7 +25,10 @@ export class IngresoUnicoService {
 
   // La persona (con sesión en el portal) pide entrar a una aplicación: se le
   // entrega la dirección de la aplicación con un pase de un solo uso.
-  async emitirPase(persona: Usuario, aplicacionId: string): Promise<{ url: string }> {
+  // destino: una página de la aplicación a la que llevar a la persona después
+  // de entrar (ej. un informe pedido al asistente). Lo arma siempre el portal,
+  // y la aplicación además solo acepta sus propias páginas de informes.
+  async emitirPase(persona: Usuario, aplicacionId: string, destino?: { ruta: string; descripcion: string }): Promise<{ url: string }> {
     const app = await this.aplicaciones.findOne({ where: { id: aplicacionId } });
     if (!app || app.estado !== 'activa' || !app.url || !app.manifiesto) throw new NotFoundException('Esa aplicación no admite ingreso desde el portal.');
     const conAccesos = await this.usuarios.findOne({ where: { id: persona.id }, relations: { accesos: true } });
@@ -35,8 +38,14 @@ export class IngresoUnicoService {
     await this.pases.insert({ huella: huella(pase), usuarioId: persona.id, aplicacionId: app.id, venceEn: new Date(Date.now() + VIGENCIA_PASE_MS), usadoEn: null });
     // Limpieza de pases vencidos (no hace falta guardarlos).
     await this.pases.createQueryBuilder().delete().where('vence_en < :limite', { limite: new Date(Date.now() - 3600_000) }).execute();
-    await this.bitacora.registrar(persona, 'ingreso_aplicacion', `Entró a ${app.nombre} desde el portal.`, { aplicacion: app.id });
-    return { url: `${app.url.replace(/\/$/, '')}/sso?pase=${encodeURIComponent(pase)}` };
+    await this.bitacora.registrar(
+      persona,
+      'ingreso_aplicacion',
+      destino ? `Entró a ${app.nombre} desde el asistente del portal para abrir ${destino.descripcion}.` : `Entró a ${app.nombre} desde el portal.`,
+      destino ? { aplicacion: app.id, destino: destino.ruta } : { aplicacion: app.id },
+    );
+    const extra = destino ? `&destino=${encodeURIComponent(destino.ruta)}` : '';
+    return { url: `${app.url.replace(/\/$/, '')}/sso?pase=${encodeURIComponent(pase)}${extra}` };
   }
 
   // La APLICACIÓN (de servidor a servidor, con su clave secreta) canjea el

@@ -1,4 +1,4 @@
-<main class="mx-auto w-full max-w-[1180px] px-6 py-10" [ngClass]="{ 'pb-28': hayCambios() }">
+<main class="w-full px-6 lg:px-10 py-10" [ngClass]="{ 'pb-28': hayCambios() }">
   <nav aria-label="Ruta" class="text-[12px] text-slate-500">
     <a routerLink="/" class="hover:text-dep-blue hover:underline">Inicio</a>
     <span class="mx-1.5" aria-hidden="true">/</span><span>Configuración</span>
@@ -251,7 +251,7 @@
 <!-- Barra fija: aparece solo si hay cambios sin guardar. -->
 @if (hayCambios() && puedeEditar()) {
   <div class="fixed inset-x-0 bottom-0 z-40 border-t border-white/70 bg-white/80 backdrop-blur-xl shadow-[0_-10px_30px_-18px_rgba(37,48,107,0.5)]" role="region" aria-label="Cambios sin guardar">
-    <div class="mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-3 px-6 py-3">
+    <div class="flex flex-wrap items-center justify-between gap-3 px-6 py-3">
       <div class="min-w-0">
         <p class="text-[13px] font-bold text-dep-navy">{{ borrador()?.id ? 'Tienes cambios sin guardar' : 'Perfil nuevo sin guardar' }}</p>
         @if (errorEditor()) { <p role="alert" class="text-[12.5px] font-semibold text-[#b4112b]">{{ errorEditor() }}</p> }

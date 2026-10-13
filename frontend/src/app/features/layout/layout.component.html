@@ -1,8 +1,9 @@
-<div class="flex min-h-screen flex-col">
-  <!-- Encabezado -->
-  <header class="bg-white shadow-[0_1px_0_#e3e8f1]">
+<div class="fondo-portal flex min-h-screen flex-col">
+  <!-- Encabezado a todo el ancho: el logo en la orilla izquierda y los botones
+       en la derecha, como en las aplicaciones. -->
+  <header class="panel-vidrio relative z-40 border-x-0 border-t-0">
     <div class="barra-marca" aria-hidden="true"></div>
-    <div class="mx-auto flex max-w-[1180px] items-center gap-4 px-6 py-3">
+    <div class="flex items-center gap-4 px-4 py-3 sm:px-6 lg:px-10">
       <img src="logo-dep.png" alt="Educación Pública — Ministerio de Educación" class="h-14 w-auto select-none" draggable="false" />
       <span class="hidden h-9 w-px bg-[#dfe4ee] sm:block" aria-hidden="true"></span>
       <div class="hidden leading-tight sm:block">
@@ -65,8 +66,8 @@
     <router-outlet />
   </div>
 
-  <footer class="border-t border-[#e3e8f1] bg-white">
-    <p class="mx-auto max-w-[1180px] px-6 py-4 text-[11.5px] text-slate-500">
+  <footer class="panel-vidrio border-x-0 border-b-0">
+    <p class="px-4 py-4 text-[11.5px] text-slate-500 sm:px-6 lg:px-10">
       GDP - Gestión y Desarrollo de Personas · Dirección de Educación Pública · Ministerio de Educación
     </p>
   </footer>

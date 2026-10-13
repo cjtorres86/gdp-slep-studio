@@ -1,8 +1,9 @@
 import { NgClass, NgTemplateOutlet } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { AplicacionVista, BusquedaHistorial, ModuloVista, ResultadoBusqueda } from '../../core/models';
+import { AplicacionVista, BusquedaHistorial, InformeVista, ModuloVista, OpcionesInforme, PreguntaInforme, ResultadoBusqueda } from '../../core/models';
 import { Component, ElementRef, HostListener, OnDestroy, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { AuthService } from '../../core/auth.service';
 import { CatalogoService } from '../../core/catalogo.service';
@@ -10,39 +11,54 @@ import { atraparTab } from '../../core/atrapar-tab';
 import { bloquearFondoMientras } from '../../core/bloquear-fondo';
 import { CATALOGO_ASISTENTE } from '../../../data/catalogo';
 
-// Tiempo que se muestra "Construyendo…" antes de abrir la aplicación.
+// Tiempo que se muestra "Construyendo…" antes de abrir.
 const ESPERA_CONSTRUYENDO_MS = 1500;
 // Intercambios del historial que se muestran sobre la barra de búsqueda.
-const INTERCAMBIOS_VISIBLES = 6;
+const INTERCAMBIOS_VISIBLES = 8;
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
 export const MENSAJE_SIN_AUTORIZACION =
   'Usted aún no cuenta con autorización para ver este reporte. Por resguardo de los datos personales ' +
   '(Ley 19.628 sobre Protección de la Vida Privada y Ley 21.719 de Protección de Datos Personales), ' +
   'el acceso se otorga solo a perfiles autorizados. Solicítelo a quien administra el sistema.';
 
-type TipoRespuesta = ResultadoBusqueda | 'construyendo' | 'error';
+type TipoRespuesta = ResultadoBusqueda | 'construyendo' | 'error' | 'pregunta' | 'aviso';
+interface Opcion {
+  etiqueta: string;
+  valor: string; // "todos", "Agosto|2026" o el nombre del SLEP
+}
 interface Intercambio {
   id: string;
   pregunta: string | null;
   tipo: TipoRespuesta;
-  aplicacionId: string | null;
-  // Solo para "construyendo" y errores; el resto se arma al mostrar.
-  texto?: string;
+  aplicacionId: string | null; // también el id de un informe
+  texto?: string; // para preguntas, avisos, "construyendo" y errores
+  opciones?: Opcion[];
+  respondida?: boolean;
 }
-interface Resultado {
-  app: AplicacionVista;
-  modulo: ModuloVista;
-  puntaje: number;
+type Resultado =
+  | { tipo: 'app'; id: string; nombre: string; descripcion: string; modulo: ModuloVista; app: AplicacionVista; puntaje: number }
+  | { tipo: 'informe'; id: string; nombre: string; descripcion: string; modulo: ModuloVista; informe: InformeVista; aplicacion: string; puntaje: number };
+
+// Conversación en curso para abrir un informe: qué falta preguntar y qué respondió.
+interface Dialogo {
+  informe: InformeVista;
+  texto: string;
+  pasos: PreguntaInforme[];
+  respuestas: { mes?: string; slep?: string };
+  preguntaId: string | null;
 }
 
 // Sin tildes ni mayúsculas, para comparar lo que escribe la persona.
 const normalizar = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+const ETIQUETA_FORMATO: Record<InformeVista['formato'], string> = { excel: 'Excel', interactivo: 'Interactivo', pdf: 'PDF' };
 
 // Pantalla de inicio con forma de asistente (sin IA detrás): la persona
-// escribe qué necesita, el portal le sugiere aplicaciones y le responde con
-// mensajes. Las aplicaciones también están siempre a mano en la barra lateral.
-// Todo viene del catálogo del servidor: todas las aplicaciones se muestran a
-// todos, y el servidor dice a cuáles puede entrar cada persona.
+// escribe qué necesita y el portal le ofrece aplicaciones e informes; si un
+// informe necesita datos (mes, SLEP), el asistente se los pregunta. Las
+// aplicaciones están siempre a mano en la barra lateral izquierda. Todo viene
+// del servidor: todo se muestra a todos, y el servidor dice qué puede abrir
+// cada persona.
 @Component({
   selector: 'app-home',
   standalone: true,
@@ -56,6 +72,9 @@ export class HomeComponent implements OnInit, OnDestroy {
   readonly modulos = this.catalogo.modulos;
   readonly estado = this.catalogo.estado;
   readonly mensajeError = this.catalogo.mensajeError;
+  readonly informes = signal<InformeVista[]>([]);
+  readonly ETIQUETA_FORMATO = ETIQUETA_FORMATO;
+  private readonly opcionesPorApp = new Map<string, OpcionesInforme>();
 
   // ---------- Búsqueda ----------
   readonly consulta = signal('');
@@ -63,37 +82,48 @@ export class HomeComponent implements OnInit, OnDestroy {
   readonly indiceActivo = signal(0);
   readonly bloqueada = signal(false);
   private readonly campo = viewChild<ElementRef<HTMLInputElement>>('campo');
-
   private readonly palabrasPorApp = new Map(CATALOGO_ASISTENTE.map((e) => [e.id, e.palabras_clave.map(normalizar)]));
 
   readonly resultados = computed<Resultado[]>(() => {
     const q = normalizar(this.consulta());
-    if (!q) return [];
+    if (!q || this.dialogo()) return [];
     const palabras = q.split(/\s+/);
     const lista: Resultado[] = [];
-    for (const modulo of this.modulos()) {
+    const modulos = this.modulos();
+    for (const modulo of modulos) {
       for (const app of modulo.aplicaciones) {
-        const puntaje = this.puntaje(app, q, palabras);
-        if (puntaje > 0) lista.push({ app, modulo, puntaje });
+        const puntaje = this.puntaje(app.nombre, app.descripcion, this.palabrasPorApp.get(app.id) ?? [], q, palabras);
+        if (puntaje > 0) lista.push({ tipo: 'app', id: app.id, nombre: app.nombre, descripcion: app.descripcion, modulo, app, puntaje: puntaje + 1 });
       }
+    }
+    for (const informe of this.informes()) {
+      const modulo = modulos.find((m) => m.aplicaciones.some((a) => a.id === informe.aplicacionId));
+      const app = modulo?.aplicaciones.find((a) => a.id === informe.aplicacionId);
+      if (!modulo || !app) continue;
+      const puntaje = this.puntaje(informe.nombre, informe.descripcion, informe.palabrasClave.map(normalizar), q, palabras);
+      if (puntaje > 0) lista.push({ tipo: 'informe', id: informe.id, nombre: informe.nombre, descripcion: informe.descripcion, modulo, informe, aplicacion: app.nombre, puntaje });
     }
     return lista.sort((a, b) => b.puntaje - a.puntaje);
   });
 
   // ---------- Conversación (historial de cada persona) ----------
   readonly intercambios = signal<Intercambio[]>([]);
-  readonly historialCargado = signal(false);
-  // Los nombres se toman del catálogo al mostrar: el historial puede llegar antes que él.
+  readonly dialogo = signal<Dialogo | null>(null);
+  private readonly conversacion = viewChild<ElementRef<HTMLElement>>('conversacion');
+  private temporizador: ReturnType<typeof setTimeout> | null = null;
+
+  // Los nombres se toman al mostrar: el historial puede llegar antes que el catálogo.
   readonly visibles = computed(() => {
-    const nombres = new Map(this.modulos().flatMap((m) => m.aplicaciones).map((a) => [a.id, a.nombre]));
+    const nombres = new Map<string, string>([
+      ...this.modulos().flatMap((m) => m.aplicaciones).map((a) => [a.id, a.nombre] as [string, string]),
+      ...this.informes().map((i) => [i.id, i.nombre] as [string, string]),
+    ]);
     return this.intercambios().slice(-INTERCAMBIOS_VISIBLES).map((i) => {
       const titulo = (i.aplicacionId && nombres.get(i.aplicacionId)) || '';
-      const texto = i.texto ?? (i.tipo === 'construyendo' || i.tipo === 'error' ? '' : this.textoRespuesta(i.tipo, titulo || 'la aplicación'));
+      const texto = i.texto ?? this.textoRespuesta(i.tipo as ResultadoBusqueda, titulo || 'la aplicación');
       return { ...i, titulo, texto };
     });
   });
-  private readonly conversacion = viewChild<ElementRef<HTMLElement>>('conversacion');
-  private temporizador: ReturnType<typeof setTimeout> | null = null;
 
   // ---------- Barra lateral en pantallas angostas (menú desplegable) ----------
   readonly menuMovil = signal(false);
@@ -113,10 +143,15 @@ export class HomeComponent implements OnInit, OnDestroy {
         // El servidor manda las más recientes primero; la conversación se lee de arriba hacia abajo.
         const previos = [...lista].reverse().map((b): Intercambio => ({ id: b.id, pregunta: b.texto, tipo: b.resultado, aplicacionId: b.aplicacionId }));
         this.intercambios.update((actuales) => [...previos, ...actuales]);
-        this.historialCargado.set(true);
         this.bajarConversacion();
       },
-      error: () => this.historialCargado.set(true),
+    });
+    this.http.get<InformeVista[]>(`${environment.apiUrl}/portal/informes`).subscribe({
+      next: (lista) => {
+        this.informes.set(lista);
+        // Se piden de antemano los meses y SLEP, para preguntar sin esperas.
+        new Set(lista.map((i) => i.aplicacionId)).forEach((id) => this.cargarOpciones(id).subscribe({ error: () => undefined }));
+      },
     });
   }
 
@@ -133,24 +168,34 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   // Coincidencia por nombre formal, palabras clave y descripción.
-  private puntaje(app: AplicacionVista, q: string, palabras: string[]): number {
-    const nombre = normalizar(app.nombre);
-    const claves = this.palabrasPorApp.get(app.id) ?? [];
-    const descripcion = normalizar(app.descripcion);
+  private puntaje(nombreOriginal: string, descripcionOriginal: string, claves: string[], q: string, palabras: string[]): number {
+    const nombre = normalizar(nombreOriginal);
+    const descripcion = normalizar(descripcionOriginal);
     if (nombre.startsWith(q)) return 100;
     if (nombre.includes(q)) return 80;
     if (claves.includes(q)) return 70;
     if (claves.some((c) => c.startsWith(q))) return 60;
     if (claves.some((c) => c.includes(q)) || descripcion.includes(q)) return 40;
-    // Varias palabras: todas deben aparecer en algún lado.
-    const todo = `${nombre} ${descripcion} ${claves.join(' ')}`;
-    return palabras.length > 1 && palabras.every((p) => todo.includes(p)) ? 30 : 0;
+    // Varias palabras (ej. "ranking julio 2026"): basta con que la mayoría
+    // aparezca; los meses, años y SLEP se usan después como respuestas.
+    // Pesa más que la palabra esté en el nombre que en las claves, y más en
+    // las claves que en la descripción.
+    const utiles = palabras.filter((p) => p.length > 2 && !MESES.includes(p) && !/^\d{4}$/.test(p));
+    let suma = 0;
+    for (const p of utiles) {
+      if (nombre.includes(p)) suma += 6;
+      else if (claves.some((c) => c === p)) suma += 4;
+      else if (claves.some((c) => c.includes(p))) suma += 2;
+      else if (descripcion.includes(p)) suma += 1;
+      else return 0;
+    }
+    return utiles.length ? 20 + suma : 0;
   }
 
   // Para lectores de pantalla: qué opción de la lista está marcada.
   idActivo(): string | null {
     const r = this.menuResultados() ? this.resultados()[this.indiceActivo()] : undefined;
-    return r ? `res-${r.app.id}` : null;
+    return r ? `res-${r.id}` : null;
   }
 
   alEscribir(valor: string): void {
@@ -176,59 +221,55 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Enter o el botón de la barra: el resultado marcado (o el primero).
+  // Enter o el botón de la barra.
   buscar(): void {
     const texto = this.consulta().trim();
     if (!texto || this.bloqueada()) return;
+    // Hay una pregunta abierta: lo escrito es la respuesta.
+    if (this.dialogo()) return this.responderEscrito(texto);
     const elegido = this.resultados()[this.menuResultados() ? this.indiceActivo() : 0];
-    if (elegido) this.elegir(elegido.app);
+    if (elegido) this.elegir(elegido);
     else this.responder(texto, 'sin_resultados', null);
   }
 
-  // Elegir una aplicación desde la búsqueda (clic o Enter).
-  elegir(app: AplicacionVista): void {
+  elegir(r: Resultado): void {
+    if (r.tipo === 'app') this.elegirAplicacion(r.app);
+    else this.elegirInforme(r.informe);
+  }
+
+  // ---------- Aplicaciones ----------
+  elegirAplicacion(app: AplicacionVista): void {
     if (this.bloqueada()) return;
     const texto = this.consulta().trim() || app.nombre;
     this.menuResultados.set(false);
-    if (app.estado !== 'activa') return this.responder(texto, 'proximamente', app);
-    if (!app.autorizado || !app.url) return this.responder(texto, 'sin_autorizacion', app);
+    if (app.estado !== 'activa') return this.responder(texto, 'proximamente', app.id);
+    if (!app.autorizado || !app.url) return this.responder(texto, 'sin_autorizacion', app.id);
 
     // La pestaña se abre en el mismo instante del clic (si se abriera después
-    // de la espera, el navegador la bloquearía como ventana emergente) y muestra
-    // "Construyendo…" mientras el asistente lo dice aquí.
+    // de la espera, el navegador la bloquearía como ventana emergente).
     const externa = app.ingresoUnico || !app.url.startsWith('/');
-    const pestana = externa ? this.abrirPestanaConstruyendo(app) : null;
-    this.bloqueada.set(true);
-    const id = this.agregar({ pregunta: texto, tipo: 'construyendo', aplicacionId: app.id, texto: `Construyendo ${app.nombre}…` });
+    const pestana = externa ? this.abrirPestanaConstruyendo(app.nombre) : null;
     this.registrar(texto, app.id, 'abrir');
-    this.temporizador = setTimeout(() => {
-      const listo = () => {
-        this.reemplazar(id, { tipo: 'abrir', texto: undefined });
-        this.bloqueada.set(false);
-        this.consulta.set('');
-      };
+    this.construir(texto, app.id, app.nombre, (listo, falla) => {
       if (!externa) {
         listo();
         this.router.navigateByUrl(app.url!);
       } else if (app.ingresoUnico) {
-        this.pedirPase(app, pestana, listo, (mensaje) => {
-          this.reemplazar(id, { tipo: 'error', texto: mensaje });
-          this.bloqueada.set(false);
-        });
+        this.http.post<{ url: string }>(`${environment.apiUrl}/ingreso-unico/pase`, { aplicacionId: app.id }).subscribe(this.alRecibirPase(pestana, app.nombre, listo, falla));
       } else {
         this.irA(pestana, app.url!);
         listo();
       }
-    }, ESPERA_CONSTRUYENDO_MS);
+    });
   }
 
-  // Clic en la barra lateral: igual que antes, se abre al instante en una
-  // pestaña nueva. Si no puede entrar, el asistente se lo explica.
+  // Clic en la barra lateral: se abre al instante, como siempre. Si no puede
+  // entrar, el asistente se lo explica.
   entrar(e: MouseEvent, app: AplicacionVista): void {
     this.menuMovil.set(false);
     if (!app.autorizado || !app.url) {
       e.preventDefault();
-      if (app.estado === 'activa') this.responder(null, 'sin_autorizacion', app, false);
+      if (app.estado === 'activa') this.responder(null, 'sin_autorizacion', app.id, false);
       return;
     }
     if (app.url.startsWith('/')) {
@@ -239,19 +280,197 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
     if (!app.ingresoUnico) return; // enlace normal: pestaña nueva
     e.preventDefault();
-    const pestana = this.abrirPestanaConstruyendo(app, `Abriendo ${app.nombre}…`);
-    this.pedirPase(app, pestana, () => undefined, (mensaje) => this.agregar({ pregunta: null, tipo: 'error', aplicacionId: app.id, texto: mensaje }));
+    const pestana = this.abrirPestanaConstruyendo(app.nombre, `Abriendo ${app.nombre}…`);
+    this.http.post<{ url: string }>(`${environment.apiUrl}/ingreso-unico/pase`, { aplicacionId: app.id }).subscribe(
+      this.alRecibirPase(pestana, app.nombre, () => undefined, (m) => this.agregar({ pregunta: null, tipo: 'error', aplicacionId: app.id, texto: m })),
+    );
   }
 
-  borrarHistorial(): void {
-    this.http.delete(`${environment.apiUrl}/portal/busquedas`).subscribe({ next: () => this.intercambios.set([]) });
+  // ---------- Informes (con preguntas) ----------
+  elegirInforme(informe: InformeVista): void {
+    if (this.bloqueada()) return;
+    const texto = this.consulta().trim() || informe.nombre;
+    this.menuResultados.set(false);
+    this.consulta.set('');
+    if (!informe.autorizado) {
+      this.agregar({ pregunta: texto, tipo: 'sin_autorizacion', aplicacionId: informe.id });
+      this.registrar(texto, informe.id, 'sin_autorizacion');
+      return;
+    }
+    // Quien trabaja con un solo SLEP no elige: el servidor usa el suyo.
+    const pasos = informe.preguntas.filter((p) => !(p.clave === 'slep' && informe.sleps !== 'todos' && informe.sleps.length <= 1));
+    const dialogo: Dialogo = { informe, texto, pasos, respuestas: {}, preguntaId: null };
+    this.agregar({ pregunta: texto, tipo: 'aviso', aplicacionId: informe.id, texto: `Muy bien, preparemos ${informe.nombre}.` });
+    this.dialogo.set(dialogo);
+    const opciones = this.opcionesPorApp.get(informe.aplicacionId);
+    if (opciones || !pasos.length) {
+      this.adelantarRespuestas(dialogo, texto, opciones);
+      this.siguientePaso();
+      return;
+    }
+    // Las opciones todavía no llegan (la aplicación puede estar despertando).
+    const aviso = this.agregar({ pregunta: null, tipo: 'construyendo', aplicacionId: informe.id, texto: 'Consultando los meses disponibles…' });
+    this.cargarOpciones(informe.aplicacionId).subscribe({
+      next: (o) => {
+        this.quitar(aviso);
+        this.adelantarRespuestas(dialogo, texto, o);
+        this.siguientePaso();
+      },
+      error: () => {
+        this.reemplazar(aviso, { tipo: 'error', texto: 'No pude consultar los meses disponibles. Espera un minuto y vuelve a intentarlo.' });
+        this.dialogo.set(null);
+      },
+    });
   }
 
-  // ---------- Apertura de aplicaciones ----------
-  private abrirPestanaConstruyendo(app: AplicacionVista, texto = `Construyendo ${app.nombre}…`): Window | null {
+  // Si la persona ya lo dijo al escribir (ej. "ranking julio 2026", "errores
+  // Valdivia"), no se le vuelve a preguntar.
+  private adelantarRespuestas(d: Dialogo, texto: string, o: OpcionesInforme | undefined): void {
+    if (!o) return;
+    const q = normalizar(texto);
+    const pasoMes = d.pasos.find((p) => p.clave === 'mes');
+    const nombreMes = MESES.find((m) => q.split(/\s+/).includes(m));
+    if (pasoMes && nombreMes) {
+      const anio = q.match(/\b(20\d{2})\b/)?.[1];
+      const hallado = o.meses.find((m) => normalizar(m.mes) === nombreMes && (!anio || m.anio === anio));
+      if (hallado) d.respuestas.mes = `${hallado.mes}|${hallado.anio}`;
+    }
+    const pasoSlep = d.pasos.find((p) => p.clave === 'slep');
+    if (pasoSlep) {
+      const sleps = d.informe.sleps === 'todos' ? o.sleps : d.informe.sleps;
+      const hallado = sleps.find((s) => q.includes(normalizar(s)));
+      if (hallado) d.respuestas.slep = hallado;
+    }
+  }
+
+  // Hace la siguiente pregunta pendiente o, si no queda ninguna, ofrece abrir.
+  private siguientePaso(): void {
+    const d = this.dialogo();
+    if (!d) return;
+    const paso = d.pasos.find((p) => d.respuestas[p.clave] === undefined);
+    if (!paso) {
+      // Todo respondido: se abre con un clic (así el navegador permite la pestaña nueva).
+      d.preguntaId = this.agregar({
+        pregunta: null, tipo: 'pregunta', aplicacionId: d.informe.id,
+        texto: this.resumen(d), opciones: [{ etiqueta: `Abrir ${d.informe.nombre}`, valor: 'abrir' }],
+      });
+      return;
+    }
+    d.preguntaId = this.agregar({ pregunta: null, tipo: 'pregunta', aplicacionId: d.informe.id, texto: paso.texto, opciones: this.opcionesDe(d, paso) });
+  }
+
+  private opcionesDe(d: Dialogo, paso: PreguntaInforme): Opcion[] {
+    const o = this.opcionesPorApp.get(d.informe.aplicacionId) ?? { meses: [], sleps: [] };
+    const lista: Opcion[] = paso.opcionTodos ? [{ etiqueta: paso.opcionTodos, valor: 'todos' }] : [];
+    if (paso.clave === 'mes') {
+      o.meses.forEach((m, i) => lista.push({ etiqueta: `${m.mes} ${m.anio}${i === 0 ? ' · el más reciente' : ''}`, valor: `${m.mes}|${m.anio}` }));
+    } else {
+      (d.informe.sleps === 'todos' ? o.sleps : d.informe.sleps).forEach((s) => lista.push({ etiqueta: s, valor: s }));
+    }
+    return lista;
+  }
+
+  private resumen(d: Dialogo): string {
+    const partes: string[] = [];
+    if (d.respuestas.mes) partes.push(d.respuestas.mes === 'todos' ? 'todos los meses' : d.respuestas.mes.replace('|', ' '));
+    if (d.respuestas.slep) partes.push(d.respuestas.slep === 'todos' ? 'todos los SLEP' : d.respuestas.slep);
+    return partes.length ? `Listo: ${d.informe.nombre} con ${partes.join(' y ')}.` : `Listo: ${d.informe.nombre}.`;
+  }
+
+  // Clic en una opción de la pregunta en curso.
+  responderPregunta(intercambioId: string, opcion: Opcion): void {
+    const d = this.dialogo();
+    if (!d || d.preguntaId !== intercambioId || this.bloqueada()) return;
+    this.reemplazar(intercambioId, { respondida: true });
+    if (opcion.valor === 'abrir') return this.abrirInforme(d);
+    const paso = d.pasos.find((p) => d.respuestas[p.clave] === undefined);
+    if (!paso) return;
+    d.respuestas[paso.clave] = opcion.valor;
+    this.agregar({ pregunta: opcion.etiqueta.replace(' · el más reciente', ''), tipo: 'aviso', aplicacionId: null, texto: '' });
+    this.siguientePaso();
+  }
+
+  // La persona escribió la respuesta en vez de hacer clic.
+  private responderEscrito(texto: string): void {
+    const d = this.dialogo()!;
+    const actual = this.intercambios().find((i) => i.id === d.preguntaId);
+    const q = normalizar(texto);
+    this.consulta.set('');
+    if (['cancelar', 'salir', 'nada', 'no'].includes(q)) return this.cancelarDialogo(texto);
+    const opciones = actual?.opciones ?? [];
+    const elegida =
+      opciones.find((o) => normalizar(o.etiqueta) === q) ??
+      (/(todo|complet|general)/.test(q) ? opciones.find((o) => o.valor === 'todos') : undefined) ??
+      opciones.find((o) => q.split(/\s+/).every((p) => normalizar(o.etiqueta).includes(p))) ??
+      (/^(si|abrir|dale|ok)$/.test(q) ? opciones.find((o) => o.valor === 'abrir') : undefined);
+    if (elegida && actual) return this.responderPregunta(actual.id, elegida);
+    this.agregar({ pregunta: texto, tipo: 'aviso', aplicacionId: null, texto: 'No encontré esa opción. Elige una de la lista, o escribe «cancelar».' });
+  }
+
+  cancelarDialogo(texto: string | null = null): void {
+    const d = this.dialogo();
+    if (!d) return;
+    if (d.preguntaId) this.reemplazar(d.preguntaId, { respondida: true });
+    this.dialogo.set(null);
+    this.agregar({ pregunta: texto, tipo: 'aviso', aplicacionId: null, texto: 'De acuerdo, lo dejamos aquí. ¿Qué más necesitas?' });
+  }
+
+  private abrirInforme(d: Dialogo): void {
+    this.dialogo.set(null);
+    const pestana = this.abrirPestanaConstruyendo(d.informe.nombre);
+    const [mes, anio] = d.respuestas.mes && d.respuestas.mes !== 'todos' ? d.respuestas.mes.split('|') : [undefined, undefined];
+    const slep = d.respuestas.slep && d.respuestas.slep !== 'todos' ? d.respuestas.slep : undefined;
+    this.registrar(d.texto, d.informe.id, 'abrir');
+    this.construir(null, d.informe.id, d.informe.nombre, (listo, falla) => {
+      this.http
+        .post<{ url: string }>(`${environment.apiUrl}/portal/informes/${encodeURIComponent(d.informe.id)}/abrir`, { mes, anio, slep })
+        .subscribe(this.alRecibirPase(pestana, d.informe.nombre, listo, falla));
+    });
+  }
+
+  // ---------- Apertura ----------
+  // "Construyendo…" durante la espera; después, abre (abrir llama a listo o falla).
+  private construir(pregunta: string | null, id: string, nombre: string, abrir: (listo: () => void, falla: (m: string) => void) => void): void {
+    this.bloqueada.set(true);
+    this.consulta.set('');
+    const aviso = this.agregar({ pregunta, tipo: 'construyendo', aplicacionId: id, texto: `Construyendo ${nombre}…` });
+    this.temporizador = setTimeout(
+      () =>
+        abrir(
+          () => {
+            this.reemplazar(aviso, { tipo: 'abrir', texto: undefined });
+            this.bloqueada.set(false);
+          },
+          (mensaje) => {
+            this.reemplazar(aviso, { tipo: 'error', texto: mensaje });
+            this.bloqueada.set(false);
+          },
+        ),
+      ESPERA_CONSTRUYENDO_MS,
+    );
+  }
+
+  private alRecibirPase(pestana: Window | null, nombre: string, ok: () => void, falla: (mensaje: string) => void) {
+    return {
+      next: ({ url }: { url: string }) => {
+        this.irA(pestana, url);
+        ok();
+      },
+      error: (err: HttpErrorResponse) => {
+        pestana?.close();
+        falla(
+          err.status === 0
+            ? `No se pudo abrir ${nombre}: el servidor no respondió. Espera un minuto y vuelve a intentar.`
+            : (err.error?.message ?? `No se pudo abrir ${nombre}.`),
+        );
+      },
+    };
+  }
+
+  private abrirPestanaConstruyendo(nombre: string, texto = `Construyendo ${nombre}…`): Window | null {
     const pestana = window.open('', '_blank');
     if (pestana) {
-      pestana.document.title = app.nombre;
+      pestana.document.title = nombre;
       pestana.document.body.innerHTML = `<p style="font-family:system-ui,sans-serif;color:#25306B;padding:2.5rem;font-size:15px">${texto.replace(/</g, '&lt;')}</p>`;
     }
     return pestana;
@@ -266,28 +485,40 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Ingreso único: el portal pide un pase de un solo uso y abre la aplicación con él.
-  private pedirPase(app: AplicacionVista, pestana: Window | null, ok: () => void, falla: (mensaje: string) => void): void {
-    this.http.post<{ url: string }>(`${environment.apiUrl}/ingreso-unico/pase`, { aplicacionId: app.id }).subscribe({
-      next: ({ url }) => {
-        this.irA(pestana, url);
-        ok();
-      },
-      error: (err: HttpErrorResponse) => {
-        pestana?.close();
-        falla(
-          err.status === 0
-            ? `No se pudo abrir ${app.nombre}: el servidor no respondió. Espera un minuto y vuelve a intentar.`
-            : (err.error?.message ?? `No se pudo abrir ${app.nombre}.`),
-        );
+  private cargarOpciones(aplicacionId: string): Observable<OpcionesInforme> {
+    return new Observable<OpcionesInforme>((s) => {
+      const guardadas = this.opcionesPorApp.get(aplicacionId);
+      if (guardadas) {
+        s.next(guardadas);
+        s.complete();
+        return;
+      }
+      const sub = this.http.get<OpcionesInforme>(`${environment.apiUrl}/portal/informes/opciones`, { params: { aplicacionId } }).subscribe({
+        next: (o) => {
+          // Sin meses (la aplicación no respondió) no se guarda: se vuelve a intentar.
+          if (o.meses.length) this.opcionesPorApp.set(aplicacionId, o);
+          s.next(o);
+          s.complete();
+        },
+        error: (e) => s.error(e),
+      });
+      return () => sub.unsubscribe();
+    });
+  }
+
+  borrarHistorial(): void {
+    this.http.delete(`${environment.apiUrl}/portal/busquedas`).subscribe({
+      next: () => {
+        this.intercambios.set([]);
+        this.dialogo.set(null);
       },
     });
   }
 
   // ---------- Conversación ----------
-  private responder(pregunta: string | null, resultado: ResultadoBusqueda, app: AplicacionVista | null, guardar = true): void {
-    this.agregar({ pregunta, tipo: resultado, aplicacionId: app?.id ?? null });
-    if (guardar && pregunta) this.registrar(pregunta, app?.id ?? null, resultado);
+  private responder(pregunta: string | null, resultado: ResultadoBusqueda, id: string | null, guardar = true): void {
+    this.agregar({ pregunta, tipo: resultado, aplicacionId: id });
+    if (guardar && pregunta) this.registrar(pregunta, id, resultado);
     this.consulta.set('');
   }
 
@@ -300,8 +531,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
   }
 
-  private registrar(texto: string, aplicacionId: string | null, resultado: ResultadoBusqueda): void {
-    this.http.post(`${environment.apiUrl}/portal/busquedas`, { texto: texto.slice(0, 200), aplicacionId, resultado }).subscribe({ error: () => undefined });
+  private registrar(texto: string, id: string | null, resultado: ResultadoBusqueda): void {
+    this.http.post(`${environment.apiUrl}/portal/busquedas`, { texto: texto.slice(0, 200), aplicacionId: id, resultado }).subscribe({ error: () => undefined });
   }
 
   private agregar(i: Omit<Intercambio, 'id'>): string {
@@ -313,6 +544,10 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   private reemplazar(id: string, cambios: Partial<Intercambio>): void {
     this.intercambios.update((lista) => lista.map((x) => (x.id === id ? { ...x, ...cambios } : x)));
+  }
+
+  private quitar(id: string): void {
+    this.intercambios.update((lista) => lista.filter((x) => x.id !== id));
   }
 
   private bajarConversacion(): void {

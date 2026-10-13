@@ -12,6 +12,6 @@ import { PerfilAplicacion } from '../perfiles/perfil-aplicacion.entity';
   imports: [TypeOrmModule.forFeature([Aplicacion, Usuario, PaseIngreso, PerfilAplicacion])],
   controllers: [IngresoUnicoController],
   providers: [IngresoUnicoService, NotificadorService],
-  exports: [NotificadorService],
+  exports: [NotificadorService, IngresoUnicoService],
 })
 export class IngresoUnicoModule {}

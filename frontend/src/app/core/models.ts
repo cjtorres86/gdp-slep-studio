@@ -26,6 +26,28 @@ export interface AplicacionVista {
   autorizado: boolean;
 }
 
+// Informes que entregan las aplicaciones (asistente de la pantalla de inicio).
+export interface PreguntaInforme {
+  clave: 'mes' | 'slep';
+  texto: string;
+  opcionTodos: string | null; // null = hay que elegir uno
+}
+export interface InformeVista {
+  id: string;
+  aplicacionId: string;
+  nombre: string;
+  descripcion: string;
+  formato: 'excel' | 'interactivo' | 'pdf';
+  palabrasClave: string[];
+  preguntas: PreguntaInforme[];
+  autorizado: boolean;
+  sleps: 'todos' | string[];
+}
+export interface OpcionesInforme {
+  meses: { mes: string; anio: string }[];
+  sleps: string[];
+}
+
 // Historial del asistente de la pantalla de inicio.
 export type ResultadoBusqueda = 'abrir' | 'proximamente' | 'sin_autorizacion' | 'sin_resultados';
 export interface BusquedaHistorial {
