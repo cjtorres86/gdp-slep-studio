@@ -34,10 +34,14 @@ interface Intercambio {
   texto?: string; // para preguntas, avisos, "construyendo" y errores
   opciones?: Opcion[];
   respondida?: boolean;
+  // La persona eligió otra cosa en vez de responder esta pregunta.
+  descartada?: boolean;
 }
 type Resultado =
   | { tipo: 'app'; id: string; nombre: string; descripcion: string; modulo: ModuloVista; app: AplicacionVista; puntaje: number }
-  | { tipo: 'informe'; id: string; nombre: string; descripcion: string; modulo: ModuloVista; informe: InformeVista; aplicacion: string; puntaje: number };
+  | { tipo: 'informe'; id: string; nombre: string; descripcion: string; modulo: ModuloVista; informe: InformeVista; aplicacion: string; puntaje: number }
+  // Con una pregunta abierta: una de sus opciones que coincide con lo escrito.
+  | { tipo: 'respuesta'; id: string; nombre: string; descripcion: string; opcion: Opcion; intercambioId: string; puntaje: number };
 
 // Conversación en curso para abrir un informe: qué falta preguntar y qué respondió.
 interface Dialogo {
@@ -99,9 +103,11 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   readonly resultados = computed<Resultado[]>(() => {
     const q = normalizar(this.consulta());
-    if (!q || this.dialogo()) return [];
+    if (!q) return [];
     const palabras = q.split(/\s+/);
-    const lista: Resultado[] = [];
+    // Con una pregunta abierta, primero sus respuestas que coinciden con lo
+    // escrito; debajo, la búsqueda de siempre (para cambiar de tema).
+    const lista: Resultado[] = this.respuestasQueCoinciden(q, palabras);
     const modulos = this.modulos();
     for (const modulo of modulos) {
       for (const app of modulo.aplicaciones) {
@@ -118,8 +124,35 @@ export class HomeComponent implements OnInit, OnDestroy {
       if (puntaje > 0) lista.push({ tipo: 'informe', id: informe.id, nombre: informe.nombre, descripcion: informe.descripcion, modulo, informe, aplicacion: app.nombre, puntaje });
     }
     // A igual puntaje, primero los informes (lo que la persona suele buscar).
+    // Las respuestas a la pregunta abierta tienen un puntaje mayor: van arriba.
     return lista.sort((a, b) => b.puntaje - a.puntaje || (a.tipo === b.tipo ? 0 : a.tipo === 'informe' ? -1 : 1));
   });
+
+  // Opciones de la pregunta abierta que coinciden con lo escrito ("jul" →
+  // "Julio 2026"; "todos", "completo" → la opción que no filtra; "si",
+  // "abrir" → abrir el informe).
+  private respuestasQueCoinciden(q: string, palabras: string[]): Resultado[] {
+    const d = this.dialogo();
+    const pregunta = d ? this.intercambios().find((i) => i.id === d.preguntaId && !i.respondida) : undefined;
+    if (!pregunta?.opciones?.length) return [];
+    const utiles = palabras.filter((p) => !PALABRAS_RELLENO.has(p));
+    return pregunta.opciones
+      .filter((o) => {
+        const etiqueta = normalizar(o.etiqueta);
+        if (o.valor === 'todos' && /(todo|complet|general)/.test(q)) return true;
+        if (o.valor === 'abrir' && /^(si|abrir|dale|ok|listo)$/.test(q)) return true;
+        return utiles.length > 0 && utiles.every((p) => etiqueta.includes(p));
+      })
+      .map((o, k) => ({
+        tipo: 'respuesta' as const,
+        id: `resp-${o.valor}`,
+        nombre: o.etiqueta.replace(' · el más reciente', ''),
+        descripcion: pregunta.texto ?? '',
+        opcion: o,
+        intercambioId: pregunta.id,
+        puntaje: 1000 - k,
+      }));
+  }
 
   // ---------- Conversación (historial de cada persona) ----------
   readonly intercambios = signal<Intercambio[]>([]);
@@ -190,6 +223,10 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (!this.listaAbajo() || !lista || !seccion || !bloque || !barra || !conversacion) {
       this.desplazamiento.set(0);
       this.altoLista.set(null);
+      // Conversación iniciada: la lista ocupa su espacio sobre la barra y empuja
+      // la conversación hacia arriba; esta queda anclada abajo, con el último
+      // mensaje visible justo encima de la lista.
+      if (!this.listaAbajo() && conversacion) conversacion.scrollTop = conversacion.scrollHeight;
       return;
     }
     // Alto completo del contenido (aunque esté limitado) más sus bordes: la
@@ -316,16 +353,33 @@ export class HomeComponent implements OnInit, OnDestroy {
   buscar(): void {
     const texto = this.consulta().trim();
     if (!texto || this.bloqueada()) return;
-    // Hay una pregunta abierta: lo escrito es la respuesta.
-    if (this.dialogo()) return this.responderEscrito(texto);
     const elegido = this.resultados()[this.menuResultados() ? this.indiceActivo() : 0];
-    if (elegido) this.elegir(elegido);
-    else this.responder(texto, 'sin_resultados', null);
+    if (elegido) return this.elegir(elegido);
+    // Sin resultados y con una pregunta abierta: se intenta como respuesta
+    // escrita ("cancelar", "no", etc.).
+    if (this.dialogo()) return this.responderEscrito(texto);
+    this.responder(texto, 'sin_resultados', null);
   }
 
   elegir(r: Resultado): void {
+    this.menuResultados.set(false);
+    if (r.tipo === 'respuesta') {
+      this.consulta.set('');
+      return this.responderPregunta(r.intercambioId, r.opcion);
+    }
+    // Eligió otra cosa: la pregunta abierta se deja de lado y empieza lo nuevo.
+    this.descartarDialogo();
     if (r.tipo === 'app') this.elegirAplicacion(r.app);
     else this.elegirInforme(r.informe);
+  }
+
+  // Deja de lado la pregunta abierta, sin mensaje: sus opciones quedan
+  // deshabilitadas con la nota "Pregunta descartada".
+  private descartarDialogo(): void {
+    const d = this.dialogo();
+    if (!d) return;
+    if (d.preguntaId) this.reemplazar(d.preguntaId, { respondida: true, descartada: true });
+    this.dialogo.set(null);
   }
 
   // ---------- Aplicaciones ----------
