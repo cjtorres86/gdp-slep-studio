@@ -1,8 +1,17 @@
 import { BitacoraService } from '../bitacora/bitacora.service';
-import { Body, Controller, Get, HttpCode, Ip, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Ip, Patch, Post, UseGuards } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { IsOptional, Matches } from 'class-validator';
+import { Repository } from 'typeorm';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { LoginDto } from './auth.dto';
-import { AuthService, usuarioPublico } from './auth.service';
+import { AuthService, FONDO_VALIDO, usuarioPublico } from './auth.service';
+
+// Configuración → Vista. fondo null = el fondo institucional.
+class VistaDto {
+  @IsOptional() @Matches(FONDO_VALIDO)
+  fondo?: string | null;
+}
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { UsuarioActual } from './usuario-actual.decorator';
 
@@ -11,7 +20,17 @@ export class AuthController {
   constructor(
     private readonly auth: AuthService,
     private readonly bitacora: BitacoraService,
+    @InjectRepository(Usuario) private readonly usuarios: Repository<Usuario>,
   ) {}
+
+  // Preferencias de vista de la persona con sesión (hoy: su fondo de pantalla).
+  // Cualquier persona puede cambiar las suyas, y solo las suyas.
+  @UseGuards(JwtAuthGuard)
+  @Patch('vista')
+  async vista(@UsuarioActual() usuario: Usuario, @Body() dto: VistaDto) {
+    await this.usuarios.update({ id: usuario.id }, { fondo: dto.fondo ?? null });
+    return { fondo: dto.fondo ?? null };
+  }
 
   @Post('login')
   @HttpCode(200)

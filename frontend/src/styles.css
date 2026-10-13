@@ -157,6 +157,54 @@ html.plano [class*="shadow-"] { box-shadow: none !important; }
   pointer-events: none;
 }
 
+/* Configuración → Vista: fondo de pantalla elegido por la persona. Encima va
+   un velo claro suave (el texto siempre se lee, sea la foto clara u oscura) y
+   la imagen queda fija al desplazar. La retícula se oculta: compite con la foto. */
+.fondo-portal.con-imagen {
+  background:
+    linear-gradient(180deg, rgb(242 244 249 / 0.38), rgb(242 244 249 / 0.24)),
+    var(--fondo-imagen) center / cover no-repeat fixed,
+    #f2f4f9;
+}
+.fondo-portal.con-imagen::before { display: none; }
+/* Vidrio "extremo" sobre la foto: más desenfoque y saturación, para que las
+   tarjetas, la barra lateral y la conversación floten sobre la imagen. */
+.con-imagen .panel-vidrio,
+.con-imagen main .bg-white:not(input):not(select):not(textarea):not(button) {
+  background: linear-gradient(135deg, rgb(255 255 255 / 0.62), rgb(255 255 255 / 0.4));
+  -webkit-backdrop-filter: blur(34px) saturate(190%);
+  backdrop-filter: blur(34px) saturate(190%);
+  border-color: rgb(255 255 255 / 0.9);
+}
+/* Saludo y textos que van directo sobre la foto: un halo claro los separa. */
+.con-imagen #titulo-asistente,
+.con-imagen #titulo-asistente ~ p,
+.con-imagen [role='log'] > div:first-child p {
+  text-shadow: 0 0 18px rgb(255 255 255 / 0.95), 0 0 2px rgb(255 255 255 / 0.9);
+}
+
+/* Galería de fondos (ventana de Configuración). */
+.opcion-fondo {
+  display: block;
+  overflow: hidden;
+  text-align: left;
+  background: rgb(255 255 255 / 0.55);
+  border: 1px solid rgb(255 255 255 / 0.85);
+  box-shadow: 0 0 0 1px rgb(37 48 107 / 0.08);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.opcion-fondo:hover { transform: translateY(-1px); background: rgb(255 255 255 / 0.8); }
+.opcion-fondo.elegida { box-shadow: 0 0 0 2px #006BB9; }
+.opcion-fondo .miniatura { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.miniatura-institucional {
+  background:
+    radial-gradient(120px 80px at 10% 10%, rgb(58 191 240 / 0.45), transparent 70%),
+    radial-gradient(120px 80px at 100% 30%, rgb(31 132 236 / 0.35), transparent 70%),
+    radial-gradient(110px 70px at 50% 110%, rgb(144 208 57 / 0.35), transparent 70%),
+    #f2f4f9;
+}
+
 /* Vidrio plano: paneles translúcidos, esmerilados, con borde de luz. */
 .panel-vidrio {
   background: linear-gradient(135deg, rgb(255 255 255 / 0.66), rgb(255 255 255 / 0.38));

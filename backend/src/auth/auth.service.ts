@@ -13,8 +13,12 @@ export function usuarioPublico(u: Usuario) {
     usuario: u.usuario,
     nombreParaMostrar: u.nombreParaMostrar,
     rolPortal: u.rolPortal,
+    fondo: u.fondo ?? null,
   };
 }
+
+// Id de una imagen de la galería (minúsculas, números y guiones).
+export const FONDO_VALIDO = /^[a-z0-9-]{1,40}$/;
 
 @Injectable()
 export class AuthService {

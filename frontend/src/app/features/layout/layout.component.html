@@ -1,6 +1,13 @@
 <!-- En el inicio (asistente) la página ocupa justo el alto de la ventana: la
      barra de búsqueda queda abajo y la conversación sube, como en una IA. -->
-<div class="fondo-portal flex flex-col" [class.h-dvh]="enInicio()" [class.min-h-screen]="!enInicio()">
+<!-- Fondo: el institucional, o la imagen que eligió la persona en Configuración → Vista. -->
+<div
+  class="fondo-portal flex flex-col"
+  [class.h-dvh]="enInicio()"
+  [class.min-h-screen]="!enInicio()"
+  [class.con-imagen]="!!fondo()"
+  [style.--fondo-imagen]="fondo() ? 'url(' + fondo()!.archivo + ')' : null"
+>
   <!-- Encabezado a todo el ancho: el logo en la orilla izquierda y los botones
        en la derecha, como en las aplicaciones. -->
   <header class="panel-vidrio relative z-40 shrink-0 border-x-0 border-t-0">
@@ -33,21 +40,20 @@
             </svg>
             <span class="sr-only sm:not-sr-only">Inicio</span>
           </a>
-          @if (configuracion()) {
-            <button
-              #botonConfig
-              type="button"
-              (click)="abrirConfig()"
-              aria-haspopup="dialog"
-              [attr.aria-expanded]="configAbierta()"
-              class="flex items-center gap-2 rounded-lg px-3 py-2 text-[12.5px] font-bold text-dep-navy transition hover:bg-dep-gray cursor-pointer"
-            >
-              <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M4 7h10M18 7h2M4 17h2M10 17h10" /><circle cx="16" cy="7" r="2" /><circle cx="8" cy="17" r="2" />
-              </svg>
-              <span class="sr-only sm:not-sr-only">Configuración</span>
-            </button>
-          }
+          <!-- Para todas las personas: Vista es de cada uno; Administración, solo de quien administra. -->
+          <button
+            #botonConfig
+            type="button"
+            (click)="abrirConfig()"
+            aria-haspopup="dialog"
+            [attr.aria-expanded]="configAbierta()"
+            class="flex items-center gap-2 rounded-lg px-3 py-2 text-[12.5px] font-bold text-dep-navy transition hover:bg-dep-gray cursor-pointer"
+          >
+            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 7h10M18 7h2M4 17h2M10 17h10" /><circle cx="16" cy="7" r="2" /><circle cx="8" cy="17" r="2" />
+            </svg>
+            <span class="sr-only sm:not-sr-only">Configuración</span>
+          </button>
         </nav>
         <span class="hidden h-8 w-px bg-[#dfe4ee] sm:block" aria-hidden="true"></span>
         <div class="hidden text-right leading-tight sm:block">
@@ -80,7 +86,7 @@
       </p>
     </footer>
   }
-  @if (configAbierta() && configuracion(); as c) {
+  @if (configAbierta()) {
     <div class="fixed inset-0 z-50 grid place-items-center p-4" (click)="cerrarConfig()">
       <!-- Fondo: la página se ve difuminada detrás, con manchas de los colores de la marca. -->
       <div class="absolute inset-0 bg-[#25306B]/25 backdrop-blur-[6px]" aria-hidden="true"></div>
@@ -96,13 +102,13 @@
         aria-modal="true"
         aria-labelledby="titulo-config"
         (click)="$event.stopPropagation()"
-        class="vidrio relative max-h-[calc(100dvh-2rem)] w-full max-w-[560px] overflow-y-auto overscroll-contain rounded-3xl p-6 sm:p-7"
+        class="vidrio relative max-h-[calc(100dvh-2rem)] w-full max-w-[640px] overflow-y-auto overscroll-contain rounded-3xl p-6 sm:p-7"
       >
         <header class="flex items-start justify-between gap-4">
           <div>
-            <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-dep-blue">Administración</p>
+            <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-dep-blue">Portal de aplicaciones</p>
             <h2 id="titulo-config" class="mt-1 font-display text-[22px] font-extrabold tracking-tight text-dep-navy">Configuración</h2>
-            <p class="mt-1 text-[13px] text-slate-600">Elige qué quieres administrar.</p>
+            <p class="mt-1 text-[13px] text-slate-600">Ajusta tu vista{{ configuracion() ? ' y administra el sistema' : '' }}.</p>
           </div>
           <button
             data-cerrar
@@ -115,7 +121,43 @@
           </button>
         </header>
 
-        <ul class="mt-5 flex flex-col gap-3">
+        <!-- Vista: el fondo de pantalla de cada persona (se guarda en su cuenta). -->
+        <section class="mt-5" aria-labelledby="titulo-vista">
+          <div class="linea-desvanecida" aria-hidden="true"></div>
+          <div class="mt-4 flex items-baseline justify-between gap-3">
+            <h3 id="titulo-vista" class="text-[11px] font-bold uppercase tracking-[0.16em] text-dep-blue">Vista</h3>
+            @if (guardandoFondo()) { <span class="text-[11px] text-slate-500" role="status">Guardando…</span> }
+          </div>
+          <p class="mt-1 text-[13px] font-bold text-dep-navy">Fondo de pantalla</p>
+          <p class="text-[12px] text-slate-600">Va detrás de las tarjetas y la conversación. Se guarda en tu cuenta.</p>
+          <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Fondo de pantalla">
+            <!-- El institucional de siempre -->
+            <button type="button" role="radio" [attr.aria-checked]="!fondo()" (click)="elegirFondo(null)" class="opcion-fondo" [class.elegida]="!fondo()">
+              <span class="miniatura miniatura-institucional" aria-hidden="true"></span>
+              <span class="block px-2.5 pb-2.5 pt-2 text-left">
+                <span class="block text-[12.5px] font-bold text-dep-navy">Institucional</span>
+                <span class="block text-[11px] text-slate-500">Colores de la marca, sin imagen</span>
+              </span>
+            </button>
+            @for (f of FONDOS; track f.id) {
+              <button type="button" role="radio" [attr.aria-checked]="fondo()?.id === f.id" (click)="elegirFondo(f.id)" class="opcion-fondo" [class.elegida]="fondo()?.id === f.id" [title]="f.descripcion">
+                <img class="miniatura" [src]="f.miniatura" [alt]="f.nombre" loading="lazy" />
+                <span class="block px-2.5 pb-2.5 pt-2 text-left">
+                  <span class="block text-[12.5px] font-bold text-dep-navy">{{ f.nombre }}</span>
+                  <span class="block text-[11px] font-bold text-dep-blue">{{ f.lugar }}</span>
+                  <span class="mt-0.5 block text-[11px] leading-snug text-slate-600">{{ f.descripcion }}</span>
+                </span>
+              </button>
+            }
+          </div>
+        </section>
+
+        <!-- Administración: solo para quien puede entrar a alguna opción. -->
+        @if (configuracion(); as c) {
+        <section class="mt-6" aria-labelledby="titulo-administracion">
+          <div class="linea-desvanecida" aria-hidden="true"></div>
+          <h3 id="titulo-administracion" class="mt-4 text-[11px] font-bold uppercase tracking-[0.16em] text-dep-blue">Administración</h3>
+        <ul class="mt-3 flex flex-col gap-3">
           @for (a of c.aplicaciones; track a.id) {
             <li>
               <ng-template #contenidoOpcion>
@@ -147,6 +189,8 @@
             </li>
           }
         </ul>
+        </section>
+        }
       </section>
     </div>
   }

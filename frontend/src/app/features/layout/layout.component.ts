@@ -1,5 +1,8 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, ElementRef, HostListener, OnInit, inject, signal, viewChild } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Component, ElementRef, HostListener, OnInit, computed, inject, signal, viewChild } from '@angular/core';
+import { environment } from '../../../environments/environment';
+import { FONDOS, FondoPortal, fondoPorId } from '../../core/fondos';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map } from 'rxjs';
@@ -38,9 +41,33 @@ export class LayoutComponent implements OnInit {
   );
   private readonly botonConfig = viewChild<ElementRef<HTMLButtonElement>>('botonConfig');
   private readonly ventanaConfig = viewChild<ElementRef<HTMLElement>>('ventanaConfig');
+  private readonly http = inject(HttpClient);
+
+  // ---------- Configuración → Vista: fondo de pantalla de cada persona ----------
+  readonly FONDOS = FONDOS;
+  readonly fondo = computed<FondoPortal | null>(() => fondoPorId(this.auth.usuario()?.fondo));
+  readonly guardandoFondo = signal(false);
 
   constructor(readonly auth: AuthService) {
     bloquearFondoMientras(this.configAbierta);
+  }
+
+  // Se aplica al instante y se guarda en la cuenta (la sigue en cualquier
+  // computador). Si no se pudo guardar, vuelve al anterior.
+  elegirFondo(id: string | null): void {
+    const u = this.auth.usuario();
+    if (!u || (u.fondo ?? null) === id) return;
+    const anterior = u.fondo ?? null;
+    this.auth.usuario.set({ ...u, fondo: id });
+    this.guardandoFondo.set(true);
+    this.http.patch(`${environment.apiUrl}/auth/vista`, { fondo: id }).subscribe({
+      next: () => this.guardandoFondo.set(false),
+      error: () => {
+        this.guardandoFondo.set(false);
+        const actual = this.auth.usuario();
+        if (actual) this.auth.usuario.set({ ...actual, fondo: anterior });
+      },
+    });
   }
 
   ngOnInit(): void {

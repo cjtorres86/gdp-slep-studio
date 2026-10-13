@@ -5,6 +5,8 @@ export interface UsuarioPortal {
   usuario: string | null;
   nombreParaMostrar: string;
   rolPortal: RolPortal;
+  // Configuración → Vista: id del fondo de pantalla elegido (null = institucional).
+  fondo?: string | null;
 }
 
 export interface LoginRespuesta {

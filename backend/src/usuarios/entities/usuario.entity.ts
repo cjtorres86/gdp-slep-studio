@@ -43,6 +43,12 @@ export class Usuario {
   @CreateDateColumn({ name: 'creado_en' })
   creadoEn: Date;
 
+  // Configuración → Vista: el fondo de pantalla que eligió la persona (el id
+  // de una imagen de la galería del portal). null = el fondo institucional.
+  // Es una preferencia de la persona: la sigue en cualquier computador.
+  @Column({ type: 'varchar', length: 40, nullable: true })
+  fondo: string | null;
+
   @OneToMany(() => Acceso, (a) => a.usuario)
   accesos: Acceso[];
 }
