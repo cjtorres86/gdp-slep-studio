@@ -27,7 +27,7 @@ describe('catálogo único (catalogo/catalogo-general.json)', () => {
     c.informes[0].formato = 'docx' as never;
     c.informes[1].categoria = 'otra' as never;
     c.informes[2].aplicacion_id = 'no_existe';
-    c.informes[3].preguntas = []; // su dirección lleva {mes}
+    c.informes[4].preguntas = []; // errores interactivo: su dirección lleva {mes}
     c.aplicaciones[0].modulo_id = 'tampoco';
     const errores = validarCatalogo(c).join('\n');
     expect(errores).toContain('formato "docx"');

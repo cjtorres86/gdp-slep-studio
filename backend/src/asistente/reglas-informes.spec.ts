@@ -41,6 +41,11 @@ describe('construirDestino', () => {
     const i = informe({ ruta: '/informe/{mes}/{anio}?imprimir=1', preguntas: [MES, SLEP] });
     expect(construirDestino(i, { mes: { mes: 'Julio', anio: '2026' }, slep: 'todos' }, 'todos', TODOS)).toBe('/informe/Julio/2026?imprimir=1');
   });
+  it('ranking (interactivo y estático): el mes obligatorio va como ?mes=&anio=', () => {
+    expect(construirDestino(informe({ ruta: '/informe-ranking', preguntas: [MES] }), { mes: { mes: 'Agosto', anio: '2026' } }, 'todos', TODOS)).toBe('/informe-ranking?mes=Agosto&anio=2026');
+    expect(construirDestino(informe({ ruta: '/informe-ranking?imprimir=1', preguntas: [MES] }), { mes: { mes: 'Agosto', anio: '2026' } }, 'todos', TODOS)).toBe('/informe-ranking?imprimir=1&mes=Agosto&anio=2026');
+    expect(() => construirDestino(informe({ ruta: '/informe-ranking', preguntas: [MES] }), { mes: 'todos' }, 'todos', TODOS)).toThrow(RespuestaInvalida);
+  });
   it('un informe que necesita mes no se abre con "todos los meses"', () => {
     const i = informe({ ruta: '/informe/{mes}/{anio}', preguntas: [MES] });
     expect(() => construirDestino(i, { mes: 'todos' }, 'todos', TODOS)).toThrow(RespuestaInvalida);

@@ -96,9 +96,9 @@
     {
       "id": "sumarios_ranking_interactivo", "aplicacion_id": "reporte_avance_sumarios", "orden": 4,
       "nombre_formal": "Informe interactivo de ranking",
-      "descripcion": "El ranking de avance del mes: pasa el mouse sobre un SLEP para ver sus campos.",
+      "descripcion": "El ranking de avance de los SLEP: posiciones, cambios del mes y el detalle de cada servicio. Genera informes en Excel y PDF.",
       "categoria": "interactivo", "formato": "html", "estado": "activa",
-      "url_destino": "/informe/{mes}/{anio}?tipo=ranking",
+      "url_destino": "/informe-ranking",
       "permiso": "exportar_informe", "requiere_alcance_todos": false,
       "preguntas": [
         { "clave": "mes", "texto": "¿De qué mes quieres el ranking?", "opcion_todos": null }
@@ -136,7 +136,7 @@
       "nombre_formal": "Informe estático de ranking",
       "descripcion": "El ranking del mes, listo para guardar o imprimir.",
       "categoria": "estatico", "formato": "pdf", "estado": "activa",
-      "url_destino": "/informe/{mes}/{anio}?tipo=ranking&imprimir=1",
+      "url_destino": "/informe-ranking?imprimir=1",
       "permiso": "exportar_informe", "requiere_alcance_todos": false,
       "preguntas": [
         { "clave": "mes", "texto": "¿De qué mes quieres el ranking?", "opcion_todos": null }
