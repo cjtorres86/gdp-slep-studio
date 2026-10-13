@@ -134,7 +134,7 @@
       <!-- Conversación flotante (sin contenedor): saludo arriba a la izquierda y burbujas. -->
       <div #conversacion class="flex min-h-0 flex-col gap-3 overflow-y-auto pt-8" [class.flex-1]="iniciada()" role="log" aria-live="polite" aria-label="Conversación con el asistente">
         <div class="pb-2">
-          <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-dep-blue">Asistente del portal</p>
+          <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-dep-blue">Asistente Virtual</p>
           <h1 id="titulo-asistente" class="mt-1 font-display font-extrabold leading-tight tracking-tight text-dep-navy" [ngClass]="iniciada() ? 'text-[26px]' : 'text-[34px]'">Hola, {{ nombre }}</h1>
           <p class="mt-1 text-[14px] text-slate-600">Escribe lo que necesitas: te llevo a la aplicación o te preparo el informe.</p>
         </div>
@@ -163,7 +163,9 @@
                   [ngClass]="k === indiceActivo() ? 'bg-dep-navy/[0.06]' : ''"
                   [style.border-left-color]="k === indiceActivo() ? r.modulo.color : 'transparent'"
                 >
-                  <ng-container *ngTemplateOutlet="icono; context: { $implicit: r.modulo.icono, color: r.modulo.color, chico: false }" />
+                  <!-- Informes: el mismo cuadro con hoja, con el color de su formato
+                       (xlsx verde, html azul, pdf rojo). Aplicaciones: el de su módulo. -->
+                  <ng-container *ngTemplateOutlet="icono; context: { $implicit: r.modulo.icono, color: r.tipo === 'informe' ? COLOR_FORMATO[r.informe.formato] : r.modulo.color, chico: false }" />
                   <span class="min-w-0 flex-1">
                     <span class="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <span class="text-[14px] font-bold text-dep-navy">{{ r.nombre }}</span>

@@ -48,6 +48,8 @@ export class InformesService {
           nombre: i.nombre,
           descripcion: i.descripcion,
           formato: i.formato,
+          categoria: i.categoria,
+          estado: i.estado,
           palabrasClave: i.palabrasClave,
           preguntas: i.preguntas,
           autorizado: informeAutorizado(i, usuario.rolPortal, acceso, perfiles),
@@ -89,6 +91,7 @@ export class InformesService {
   async abrir(usuario: Usuario, informeId: string, respuestas: RespuestasInforme): Promise<{ url: string }> {
     const informe = await this.informes.findOne({ where: { id: informeId } });
     if (!informe) throw new NotFoundException('Ese informe no existe.');
+    if (informe.estado !== 'activa') throw new NotFoundException(`${informe.nombre} estará disponible pronto.`);
     const [acceso, perfiles, sleps] = await Promise.all([
       this.accesos.findOne({ where: { usuarioId: usuario.id, aplicacionId: informe.aplicacionId } }),
       this.perfiles.find({ where: { aplicacionId: informe.aplicacionId } }),

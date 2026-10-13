@@ -16,6 +16,8 @@ export interface AplicacionVista {
   // ¿La persona puede entrar? Todas las aplicaciones se muestran a todos;
   // las que no puede abrir llegan sin dirección y con autorizado = false.
   autorizado: boolean;
+  // Palabras con que el Asistente Virtual la encuentra (del catálogo único).
+  palabrasClave: string[];
 }
 
 export interface ModuloVista {
@@ -67,6 +69,7 @@ export function construirCatalogo(
       // Aplicación integrada: se entra con un pase del portal, sin volver a escribir la clave.
       ingresoUnico: app.estado === 'activa' && !!app.manifiesto,
       autorizado,
+      palabrasClave: app.palabrasClave ?? [],
     };
   };
 

@@ -9,7 +9,6 @@ import { AuthService } from '../../core/auth.service';
 import { CatalogoService } from '../../core/catalogo.service';
 import { atraparTab } from '../../core/atrapar-tab';
 import { bloquearFondoMientras } from '../../core/bloquear-fondo';
-import { CATALOGO_ASISTENTE } from '../../../data/catalogo';
 
 // Tiempo que se muestra "Construyendo…" antes de abrir.
 const ESPERA_CONSTRUYENDO_MS = 1500;
@@ -60,7 +59,10 @@ const PALABRAS_CATEGORIA = new Set(['informe', 'informes', 'reporte', 'reportes'
 const PALABRAS_RELLENO = new Set(['ver', 'abrir', 'quiero', 'necesito', 'dame', 'el', 'la', 'los', 'las', 'un', 'una', 'de', 'del', 'me', 'por', 'favor', 'en', 'y', 'con']);
 // Sección del acordeón abierta, recordada en este navegador.
 const CLAVE_ACORDEON = 'gdp_portal_acordeon';
-const ETIQUETA_FORMATO: Record<InformeVista['formato'], string> = { excel: 'Excel', interactivo: 'Interactivo', pdf: 'PDF' };
+const ETIQUETA_FORMATO: Record<InformeVista['formato'], string> = { xlsx: 'xlsx', html: 'html', pdf: 'pdf' };
+// Color del cuadro del ícono según el formato, en tonos sobrios de la paleta:
+// xlsx verde, html azul (el azul gobierno), pdf rojo.
+const COLOR_FORMATO: Record<InformeVista['formato'], string> = { xlsx: '#2F7D4E', html: '#006BB9', pdf: '#B73A48' };
 
 // Pantalla de inicio con forma de asistente (sin IA detrás): la persona
 // escribe qué necesita y el portal le ofrece aplicaciones e informes; si un
@@ -85,6 +87,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   readonly mensajeError = this.catalogo.mensajeError;
   readonly informes = signal<InformeVista[]>([]);
   readonly ETIQUETA_FORMATO = ETIQUETA_FORMATO;
+  readonly COLOR_FORMATO = COLOR_FORMATO;
   private readonly opcionesPorApp = new Map<string, OpcionesInforme>();
 
   // ---------- Búsqueda ----------
@@ -93,7 +96,6 @@ export class HomeComponent implements OnInit, OnDestroy {
   readonly indiceActivo = signal(0);
   readonly bloqueada = signal(false);
   private readonly campo = viewChild<ElementRef<HTMLInputElement>>('campo');
-  private readonly palabrasPorApp = new Map(CATALOGO_ASISTENTE.map((e) => [e.id, e.palabras_clave.map(normalizar)]));
 
   readonly resultados = computed<Resultado[]>(() => {
     const q = normalizar(this.consulta());
@@ -103,7 +105,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     const modulos = this.modulos();
     for (const modulo of modulos) {
       for (const app of modulo.aplicaciones) {
-        const puntaje = this.puntaje(app.nombre, this.palabrasPorApp.get(app.id) ?? [], q, palabras);
+        // Las palabras clave vienen del catálogo único (servidor).
+        const puntaje = this.puntaje(app.nombre, (app.palabrasClave ?? []).map(normalizar), q, palabras);
         if (puntaje > 0) lista.push({ tipo: 'app', id: app.id, nombre: app.nombre, descripcion: app.descripcion, modulo, app, puntaje });
       }
     }
@@ -317,6 +320,11 @@ export class HomeComponent implements OnInit, OnDestroy {
     const texto = this.consulta().trim() || informe.nombre;
     this.menuResultados.set(false);
     this.consulta.set('');
+    if (informe.estado !== 'activa') {
+      this.agregar({ pregunta: texto, tipo: 'proximamente', aplicacionId: informe.id });
+      this.registrar(texto, informe.id, 'proximamente');
+      return;
+    }
     if (!informe.autorizado) {
       this.agregar({ pregunta: texto, tipo: 'sin_autorizacion', aplicacionId: informe.id });
       this.registrar(texto, informe.id, 'sin_autorizacion');

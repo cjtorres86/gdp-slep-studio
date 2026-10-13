@@ -62,6 +62,11 @@ export class Aplicacion {
   @Column({ type: 'json', nullable: true })
   manifiesto: Manifiesto | null;
 
+  // Palabras con que el Asistente Virtual encuentra la aplicación (vienen del
+  // catálogo único, catalogo/catalogo-general.json).
+  @Column({ name: 'palabras_clave', type: 'json', nullable: true })
+  palabrasClave: string[] | null;
+
   // Dirección del SERVIDOR de la aplicación integrada, para avisarle al
   // instante cuando una persona cambia o se desactiva.
   @Column({ name: 'url_integracion', type: 'varchar', length: 300, nullable: true })

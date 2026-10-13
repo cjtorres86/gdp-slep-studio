@@ -12,6 +12,8 @@ export interface InformeVista {
   nombre: string;
   descripcion: string;
   formato: Informe['formato'];
+  categoria: Informe['categoria'];
+  estado: string;
   palabrasClave: string[];
   preguntas: PreguntaInforme[];
   autorizado: boolean;

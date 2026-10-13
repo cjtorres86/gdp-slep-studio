@@ -1,0 +1,160 @@
+{
+  "_descripcion": "Catálogo único de GDP-SLEP Studio. Solo METADATOS (nombres, relaciones, palabras clave, preguntas y direcciones): los informes reales viven en cada aplicación. Al arrancar, el servidor del portal copia este archivo a la base de datos; para cambiar algo, se edita aquí y se sube el portal. Nomenclatura de informes: 'Informe [formato] de [contenido]'. formato: xlsx (verde), html (azul), pdf (rojo). categoria: consolidado, interactivo, estatico. preguntas: mes y/o slep; opcion_todos = texto de la respuesta que no filtra (null = obligatorio elegir uno). url_destino: página de la aplicación; {mes} y {anio} se reemplazan por la respuesta.",
+
+  "modulos": [
+    { "id": "gestor_formularios", "nombre": "Reportabilidad", "icono": "formularios", "color": "#1f84ec", "orden": 1 },
+    { "id": "automatizacion", "nombre": "Automatización de Procesos", "icono": "automatizacion", "color": "#90d039", "orden": 2 },
+    { "id": "documentacion", "nombre": "Documentación", "icono": "documentacion", "color": "#3abff0", "orden": 3 },
+    { "id": "configuracion", "nombre": "Configuración", "icono": "configuracion", "color": "#25306B", "orden": 4 }
+  ],
+
+  "aplicaciones": [
+    {
+      "id": "reporte_avance_sumarios", "modulo_id": "gestor_formularios", "orden": 1, "estado": "activa",
+      "nombre": "Reporte Avance de Sumarios",
+      "descripcion": "Seguimiento mensual de sumarios administrativos de los 36 SLEP.",
+      "palabras_clave": ["reporte", "sumario", "sumarios", "avance", "seguimiento", "administrativo", "mensual", "slep", "reporte de sumarios", "aplicacion", "aplicación"]
+    },
+    {
+      "id": "reporte_circular_30", "modulo_id": "gestor_formularios", "orden": 2, "estado": "proximamente",
+      "nombre": "Reporte Circular 30",
+      "descripcion": "Reporte de la Circular 30 para los SLEP.",
+      "palabras_clave": ["reporte", "circular", "30", "circular 30", "reporte circular"]
+    },
+    {
+      "id": "licencias_medicas", "modulo_id": "automatizacion", "orden": 1, "estado": "proximamente",
+      "nombre": "Licencias Médicas",
+      "descripcion": "Tramitación automatizada de licencias médicas.",
+      "palabras_clave": ["licencia", "licencias", "medica", "médica", "medicas", "médicas", "salud", "enfermedad", "reposo", "automatizacion", "automatización"]
+    },
+    {
+      "id": "doc_proyecto", "modulo_id": "documentacion", "orden": 1, "estado": "activa",
+      "nombre": "Documentación del Proyecto",
+      "descripcion": "Serie de informes técnicos del proyecto GDP-SLEP Studio.",
+      "palabras_clave": ["documentacion", "documentación", "proyecto", "informe", "informes", "tecnico", "técnico", "descargar", "descarga", "descargas"]
+    },
+    {
+      "id": "doc_marco_legal", "modulo_id": "documentacion", "orden": 2, "estado": "activa",
+      "nombre": "Documentación Marco Legal",
+      "descripcion": "Normas del proyecto de licencias médicas, con búsqueda y descarga de los textos oficiales.",
+      "palabras_clave": ["ley", "legal", "marco", "marco legal", "normativa", "norma", "normas", "documento", "pdf", "21.180", "21.663", "circular", "descargar", "descarga", "descargas"]
+    },
+    {
+      "id": "config_usuarios", "modulo_id": "configuracion", "orden": 1, "estado": "activa",
+      "nombre": "Usuarios y accesos",
+      "descripcion": "Crea y administra las cuentas de las personas, y define a qué aplicaciones entra cada una y con qué rol.",
+      "palabras_clave": ["usuario", "usuarios", "cuenta", "cuentas", "acceso", "accesos", "persona", "personas", "configuracion", "configuración"]
+    },
+    {
+      "id": "config_perfiles", "modulo_id": "configuracion", "orden": 2, "estado": "activa",
+      "nombre": "Perfiles",
+      "descripcion": "Define los perfiles y qué puede hacer cada uno dentro de las aplicaciones.",
+      "palabras_clave": ["perfil", "perfiles", "permiso", "permisos", "rol", "roles", "configuracion", "configuración"]
+    },
+    {
+      "id": "config_bitacora", "modulo_id": "configuracion", "orden": 3, "estado": "activa",
+      "nombre": "Bitácora",
+      "descripcion": "Registro de quién hizo qué y cuándo en todas las aplicaciones, para auditoría y trazabilidad.",
+      "palabras_clave": ["bitacora", "bitácora", "registro", "registros", "auditoria", "auditoría", "trazabilidad", "historial", "configuracion", "configuración"]
+    }
+  ],
+
+  "informes": [
+    {
+      "id": "sumarios_consolidado_mes", "aplicacion_id": "reporte_avance_sumarios", "orden": 1,
+      "nombre_formal": "Informe consolidado de datos por mes",
+      "descripcion": "Los 36 SLEP, una hoja por mes.",
+      "categoria": "consolidado", "formato": "xlsx", "estado": "activa",
+      "url_destino": "/descargar?archivo=consolidado-mes",
+      "permiso": "exportar_excel_consolidado", "requiere_alcance_todos": true,
+      "preguntas": [],
+      "palabras_clave": ["informe", "informes", "reporte", "reportes", "reporte ejecutivo", "descargar", "descarga", "descargas", "consolidado", "consolidados", "consolidacion", "consolidación", "resumen general", "datos", "datos por mes", "mes", "meses", "mensual", "excel", "xlsx", "planilla", "hoja", "sumarios", "avance"]
+    },
+    {
+      "id": "sumarios_consolidado_slep", "aplicacion_id": "reporte_avance_sumarios", "orden": 2,
+      "nombre_formal": "Informe consolidado de datos por SLEP",
+      "descripcion": "Cada SLEP en su propia hoja, con todos sus meses.",
+      "categoria": "consolidado", "formato": "xlsx", "estado": "activa",
+      "url_destino": "/descargar?archivo=consolidado-slep",
+      "permiso": "exportar_excel_slep", "requiere_alcance_todos": false,
+      "preguntas": [],
+      "palabras_clave": ["informe", "informes", "reporte", "reportes", "reporte ejecutivo", "descargar", "descarga", "descargas", "consolidado", "consolidados", "consolidacion", "consolidación", "resumen general", "datos", "datos por slep", "slep", "sleps", "servicio local", "servicios locales", "excel", "xlsx", "planilla", "hoja", "sumarios", "avance"]
+    },
+    {
+      "id": "sumarios_informe_interactivo", "aplicacion_id": "reporte_avance_sumarios", "orden": 3,
+      "nombre_formal": "Informe interactivo nacional",
+      "descripcion": "Avance de los sumarios del país: indicadores, gráficos, ranking y tabla por SLEP. Genera informes en Word, Excel y PDF.",
+      "categoria": "interactivo", "formato": "html", "estado": "activa",
+      "url_destino": "/informe-avance",
+      "permiso": "exportar_informe", "requiere_alcance_todos": false,
+      "preguntas": [
+        { "clave": "mes", "texto": "¿Quieres partir en un mes en especial, o prefieres el informe completo, con todos los meses?", "opcion_todos": "Informe completo, con todos los meses" },
+        { "clave": "slep", "texto": "¿Lo quieres de todos los SLEP o de uno en particular?", "opcion_todos": "Todos los SLEP" }
+      ],
+      "palabras_clave": ["informe", "informes", "reporte", "reportes", "reporte ejecutivo", "descargar", "descarga", "descargas", "interactivo", "interactivos", "nacional", "general", "pais", "país", "indicadores", "grafico", "gráfico", "graficos", "gráficos", "tabla", "html", "web", "pantalla", "sumarios", "avance"]
+    },
+    {
+      "id": "sumarios_ranking_interactivo", "aplicacion_id": "reporte_avance_sumarios", "orden": 4,
+      "nombre_formal": "Informe interactivo de ranking",
+      "descripcion": "El ranking de avance del mes: pasa el mouse sobre un SLEP para ver sus campos.",
+      "categoria": "interactivo", "formato": "html", "estado": "activa",
+      "url_destino": "/informe/{mes}/{anio}?tipo=ranking",
+      "permiso": "exportar_informe", "requiere_alcance_todos": false,
+      "preguntas": [
+        { "clave": "mes", "texto": "¿De qué mes quieres el ranking?", "opcion_todos": null }
+      ],
+      "palabras_clave": ["informe", "informes", "reporte", "reportes", "reporte ejecutivo", "descargar", "descarga", "descargas", "ranking", "rankings", "clasificacion", "clasificación", "posicion", "posición", "posiciones", "comparar", "interactivo", "interactivos", "html", "web", "pantalla", "sumarios", "avance"]
+    },
+    {
+      "id": "sumarios_errores_interactivo", "aplicacion_id": "reporte_avance_sumarios", "orden": 5,
+      "nombre_formal": "Informe interactivo de errores",
+      "descripcion": "Los errores de validación del mes, para revisar en pantalla.",
+      "categoria": "interactivo", "formato": "html", "estado": "activa",
+      "url_destino": "/informe/{mes}/{anio}?tipo=errores",
+      "permiso": "exportar_informe", "requiere_alcance_todos": false,
+      "preguntas": [
+        { "clave": "mes", "texto": "¿De qué mes quieres revisar los errores?", "opcion_todos": null },
+        { "clave": "slep", "texto": "¿Lo quieres de todos los SLEP o de uno en particular?", "opcion_todos": "Todos los SLEP" }
+      ],
+      "palabras_clave": ["informe", "informes", "reporte", "reportes", "reporte ejecutivo", "descargar", "descarga", "descargas", "errores", "error", "validacion", "validación", "validaciones", "revisar", "inconsistencias", "interactivo", "interactivos", "html", "web", "pantalla", "sumarios", "avance"]
+    },
+    {
+      "id": "sumarios_informe_general_pdf", "aplicacion_id": "reporte_avance_sumarios", "orden": 6,
+      "nombre_formal": "Informe estático nacional",
+      "descripcion": "El informe nacional del mes, listo para guardar o imprimir.",
+      "categoria": "estatico", "formato": "pdf", "estado": "activa",
+      "url_destino": "/informe/{mes}/{anio}?imprimir=1",
+      "permiso": "exportar_informe", "requiere_alcance_todos": false,
+      "preguntas": [
+        { "clave": "mes", "texto": "¿De qué mes quieres el informe?", "opcion_todos": null },
+        { "clave": "slep", "texto": "¿Lo quieres de todos los SLEP o de uno en particular?", "opcion_todos": "Todos los SLEP" }
+      ],
+      "palabras_clave": ["informe", "informes", "reporte", "reportes", "reporte ejecutivo", "descargar", "descarga", "descargas", "estatico", "estático", "estaticos", "estáticos", "nacional", "general", "pais", "país", "pdf", "imprimir", "impreso", "guardar", "sumarios", "avance"]
+    },
+    {
+      "id": "sumarios_ranking_pdf", "aplicacion_id": "reporte_avance_sumarios", "orden": 7,
+      "nombre_formal": "Informe estático de ranking",
+      "descripcion": "El ranking del mes, listo para guardar o imprimir.",
+      "categoria": "estatico", "formato": "pdf", "estado": "activa",
+      "url_destino": "/informe/{mes}/{anio}?tipo=ranking&imprimir=1",
+      "permiso": "exportar_informe", "requiere_alcance_todos": false,
+      "preguntas": [
+        { "clave": "mes", "texto": "¿De qué mes quieres el ranking?", "opcion_todos": null }
+      ],
+      "palabras_clave": ["informe", "informes", "reporte", "reportes", "reporte ejecutivo", "descargar", "descarga", "descargas", "ranking", "rankings", "clasificacion", "clasificación", "posicion", "posición", "posiciones", "estatico", "estático", "estaticos", "estáticos", "pdf", "imprimir", "impreso", "guardar", "sumarios", "avance"]
+    },
+    {
+      "id": "sumarios_errores_pdf", "aplicacion_id": "reporte_avance_sumarios", "orden": 8,
+      "nombre_formal": "Informe estático de errores",
+      "descripcion": "Los errores de validación del mes, listos para guardar o imprimir.",
+      "categoria": "estatico", "formato": "pdf", "estado": "activa",
+      "url_destino": "/informe/{mes}/{anio}?tipo=errores&imprimir=1",
+      "permiso": "exportar_informe", "requiere_alcance_todos": false,
+      "preguntas": [
+        { "clave": "mes", "texto": "¿De qué mes quieres los errores?", "opcion_todos": null },
+        { "clave": "slep", "texto": "¿Lo quieres de todos los SLEP o de uno en particular?", "opcion_todos": "Todos los SLEP" }
+      ],
+      "palabras_clave": ["informe", "informes", "reporte", "reportes", "reporte ejecutivo", "descargar", "descarga", "descargas", "errores", "error", "validacion", "validación", "validaciones", "inconsistencias", "estatico", "estático", "estaticos", "estáticos", "pdf", "imprimir", "impreso", "guardar", "sumarios", "avance"]
+    }
+  ]
+}

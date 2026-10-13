@@ -13,6 +13,7 @@
     "migration:run": "typeorm-ts-node-commonjs migration:run -d src/database/data-source.ts",
     "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/database/data-source.ts",
     "seed": "ts-node -r tsconfig-paths/register src/database/seeds/seed-portal.ts",
+    "catalogo:aplicar": "ts-node -r tsconfig-paths/register src/database/seeds/aplicar-catalogo.ts",
     "importar:sumarios": "ts-node -r tsconfig-paths/register src/database/seeds/importar-desde-sumarios.ts"
   },
   "dependencies": {

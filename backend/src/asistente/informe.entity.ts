@@ -9,12 +9,16 @@ export interface PreguntaInforme {
   opcionTodos: string | null;
 }
 
-export type FormatoInforme = 'excel' | 'interactivo' | 'pdf';
+// Formato del archivo (y color del ícono): xlsx verde, html azul, pdf rojo.
+export type FormatoInforme = 'xlsx' | 'html' | 'pdf';
+export type CategoriaInforme = 'consolidado' | 'interactivo' | 'estatico';
 
-// Informes y archivos que entregan las aplicaciones, para el asistente de la
-// pantalla de inicio. La ruta es una página de la aplicación; {mes} y {anio}
-// se reemplazan por la respuesta de la persona (si la ruta no los lleva, el
-// mes y el SLEP elegidos van como parámetros ?mes=&anio=&slep=).
+// Informes y archivos que entregan las aplicaciones (solo metadatos), para el
+// Asistente Virtual y la ventana de descargas de cada aplicación. Su fuente es
+// catalogo/catalogo-general.json: el servidor la copia aquí al arrancar.
+// La ruta es una página de la aplicación; {mes} y {anio} se reemplazan por la
+// respuesta de la persona (si la ruta no los lleva, el mes y el SLEP elegidos
+// van como parámetros ?mes=&anio=&slep=).
 @Entity('informes_asistente')
 export class Informe {
   @PrimaryColumn({ type: 'varchar', length: 60 })
@@ -31,6 +35,13 @@ export class Informe {
 
   @Column({ type: 'varchar', length: 20 })
   formato: FormatoInforme;
+
+  @Column({ type: 'varchar', length: 20, default: 'interactivo' })
+  categoria: CategoriaInforme;
+
+  // "activa" o "proximamente".
+  @Column({ type: 'varchar', length: 20, default: 'activa' })
+  estado: string;
 
   // Permiso del catálogo de la aplicación que hace falta (ej. "exportar_informe").
   @Column({ type: 'varchar', length: 60 })

@@ -24,6 +24,8 @@ export interface AplicacionVista {
   ingresoUnico: boolean;
   // Todas las aplicaciones se muestran a todos; false = no puede entrar.
   autorizado: boolean;
+  // Palabras con que el Asistente Virtual la encuentra (del catálogo único).
+  palabrasClave?: string[];
 }
 
 // Informes que entregan las aplicaciones (asistente de la pantalla de inicio).
@@ -37,7 +39,9 @@ export interface InformeVista {
   aplicacionId: string;
   nombre: string;
   descripcion: string;
-  formato: 'excel' | 'interactivo' | 'pdf';
+  formato: 'xlsx' | 'html' | 'pdf';
+  categoria: 'consolidado' | 'interactivo' | 'estatico';
+  estado: string; // "activa" o "proximamente"
   palabrasClave: string[];
   preguntas: PreguntaInforme[];
   autorizado: boolean;
