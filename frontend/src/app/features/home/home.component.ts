@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AplicacionVista, BusquedaHistorial, InformeVista, ModuloVista, OpcionesInforme, PreguntaInforme, ResultadoBusqueda } from '../../core/models';
-import { Component, ElementRef, HostListener, OnDestroy, OnInit, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, OnDestroy, OnInit, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { AuthService } from '../../core/auth.service';
 import { CatalogoService } from '../../core/catalogo.service';
 import { atraparTab } from '../../core/atrapar-tab';
@@ -146,6 +146,64 @@ export class HomeComponent implements OnInit, OnDestroy {
   // La conversación ya empezó: la barra baja y los mensajes suben (como una IA).
   readonly iniciada = computed(() => this.intercambios().length > 0 || !!this.dialogo());
 
+  // ---------- Posición de la lista de resultados (estado inicial) ----------
+  // En el estado inicial la lista se abre hacia ABAJO. Si no cabe, el bloque
+  // del saludo y la barra sube (translateY) solo lo necesario, sin pasar del
+  // borde superior; si ni así cabe, la lista se limita al espacio disponible
+  // y tiene scroll propio. Con la conversación iniciada, la barra está abajo y
+  // la lista se abre hacia ARRIBA.
+  readonly listaAbajo = computed(() => !this.iniciada());
+  readonly desplazamiento = signal(0); // px que sube el bloque (0 = centrado)
+  readonly altoLista = signal<number | null>(null); // máximo de la lista hacia abajo
+  private readonly seccion = viewChild<ElementRef<HTMLElement>>('seccion');
+  private readonly bloqueBusqueda = viewChild<ElementRef<HTMLElement>>('bloqueBusqueda');
+  private readonly cajaBarra = viewChild<ElementRef<HTMLElement>>('cajaBarra');
+  private readonly listaResultados = viewChild<ElementRef<HTMLElement>>('listaResultados');
+  private static readonly SEPARACION = 6; // px entre la barra y la lista
+  private static readonly MARGEN_INFERIOR = 16; // px libres bajo la lista
+  private static readonly ALTO_MINIMO_LISTA = 140; // nunca más chica que esto
+  private ajustePendiente = 0;
+
+  // Recalcula cuando cambia lo que se muestra (resultados, apertura, estado).
+  private readonly recalcular = effect(() => {
+    this.resultados();
+    this.menuResultados();
+    this.iniciada();
+    this.programarAjuste();
+  });
+
+  @HostListener('window:resize')
+  programarAjuste(): void {
+    cancelAnimationFrame(this.ajustePendiente);
+    // Después de que Angular dibuje la lista, para medir su alto real.
+    this.ajustePendiente = requestAnimationFrame(() => this.ajustarPosicion());
+  }
+
+  // Mide con offsetTop/offsetHeight, que NO incluyen el transform aplicado:
+  // así el cálculo es estable aunque el bloque esté a mitad de la animación.
+  private ajustarPosicion(): void {
+    const lista = this.listaResultados()?.nativeElement;
+    const seccion = this.seccion()?.nativeElement;
+    const bloque = this.bloqueBusqueda()?.nativeElement;
+    const barra = this.cajaBarra()?.nativeElement;
+    const conversacion = this.conversacion()?.nativeElement;
+    if (!this.listaAbajo() || !lista || !seccion || !bloque || !barra || !conversacion) {
+      this.desplazamiento.set(0);
+      this.altoLista.set(null);
+      return;
+    }
+    // Alto completo del contenido (aunque esté limitado) más sus bordes: la
+    // lista usa box-sizing border-box, así que max-height incluye el borde.
+    const altoNatural = lista.scrollHeight + (lista.offsetHeight - lista.clientHeight);
+    const bordeInferiorBarra = bloque.offsetTop + barra.offsetTop + barra.offsetHeight + HomeComponent.SEPARACION;
+    const espacioAbajo = seccion.clientHeight - HomeComponent.MARGEN_INFERIOR - bordeInferiorBarra;
+    // Lo máximo que puede subir: hasta que el saludo toque el borde superior.
+    const maximoSubir = Math.max(0, conversacion.offsetTop);
+    const subir = Math.min(Math.max(0, altoNatural - espacioAbajo), maximoSubir);
+    this.desplazamiento.set(Math.round(subir));
+    this.altoLista.set(Math.max(HomeComponent.ALTO_MINIMO_LISTA, Math.floor(espacioAbajo + subir)));
+  }
+
   // ---------- Barra lateral en pantallas angostas (menú desplegable) ----------
   readonly menuMovil = signal(false);
 
@@ -182,6 +240,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     if (this.temporizador) clearTimeout(this.temporizador);
+    cancelAnimationFrame(this.ajustePendiente);
   }
 
   cargar(): void {
@@ -230,15 +289,19 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.menuResultados.set(!!valor.trim());
   }
 
-  // La lista de resultados se abre HACIA ARRIBA de la barra, con el mejor
-  // resultado pegado a ella: ↑ sube al siguiente resultado, ↓ vuelve.
+  // Dirección de la lista: hacia ABAJO en el estado inicial (barra al centro)
+  // y hacia ARRIBA con la conversación iniciada (barra anclada abajo). En
+  // ambos casos el mejor resultado queda pegado a la barra, así que la tecla
+  // que "se aleja" de la barra pasa al siguiente resultado.
   alPresionarEnCampo(e: KeyboardEvent): void {
     const n = this.resultados().length;
-    if (e.key === 'ArrowUp' && n) {
+    const siguiente = this.listaAbajo() ? 'ArrowDown' : 'ArrowUp';
+    const anterior = this.listaAbajo() ? 'ArrowUp' : 'ArrowDown';
+    if (e.key === siguiente && n) {
       e.preventDefault();
       this.menuResultados.set(true);
       this.indiceActivo.update((i) => (i + 1) % n);
-    } else if (e.key === 'ArrowDown' && n) {
+    } else if (e.key === anterior && n) {
       e.preventDefault();
       this.indiceActivo.update((i) => (i - 1 + n) % n);
     } else if (e.key === 'Escape') {

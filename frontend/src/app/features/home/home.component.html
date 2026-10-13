@@ -128,11 +128,22 @@
 
     <!-- Centro: el asistente, sin tarjetas. Al entrar, el saludo y la barra van
          al medio; con la primera consulta la barra baja y la conversación sube. -->
-    <section class="flex min-h-0 min-w-0 flex-col px-4 sm:px-6 lg:px-12" aria-labelledby="titulo-asistente">
+    <!-- relative: es la referencia de las medidas (offsetTop) del ajuste de la lista. -->
+    <section #seccion class="relative flex min-h-0 min-w-0 flex-col px-4 sm:px-6 lg:px-12" aria-labelledby="titulo-asistente">
       @if (!iniciada()) { <div class="min-h-6 flex-1" aria-hidden="true"></div> }
 
       <!-- Conversación flotante (sin contenedor): saludo arriba a la izquierda y burbujas. -->
-      <div #conversacion class="flex min-h-0 flex-col gap-3 overflow-y-auto pt-8" [class.flex-1]="iniciada()" role="log" aria-live="polite" aria-label="Conversación con el asistente">
+      <!-- En el estado inicial, el saludo y la barra suben juntos (translateY) lo
+           justo para que la lista de resultados quepa abajo. -->
+      <div
+        #conversacion
+        class="flex min-h-0 flex-col gap-3 overflow-y-auto pt-8 transition-transform duration-200 ease-out motion-reduce:transition-none"
+        [class.flex-1]="iniciada()"
+        [style.transform]="desplazamiento() ? 'translateY(-' + desplazamiento() + 'px)' : null"
+        role="log"
+        aria-live="polite"
+        aria-label="Conversación con el asistente"
+      >
         <div class="pb-2">
           <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-dep-blue">Asistente Virtual</p>
           <h1 id="titulo-asistente" class="mt-1 font-display font-extrabold leading-tight tracking-tight text-dep-navy" [ngClass]="iniciada() ? 'text-[26px]' : 'text-[34px]'">Hola, {{ nombre }}</h1>
@@ -149,16 +160,34 @@
       </div>
 
       <!-- Barra de búsqueda tipo "prompt" (abajo una vez iniciada la conversación). -->
-      <div class="relative shrink-0 pb-6 pt-4" data-busqueda>
+      <div
+        #bloqueBusqueda
+        class="relative z-20 shrink-0 pb-6 pt-4 transition-transform duration-200 ease-out motion-reduce:transition-none"
+        [style.transform]="desplazamiento() ? 'translateY(-' + desplazamiento() + 'px)' : null"
+        data-busqueda
+      >
+        <div #cajaBarra class="relative">
         @if (menuResultados() && consulta().trim() && !dialogo()) {
-          <!-- Resultados HACIA ARRIBA: el mejor queda pegado a la barra. -->
-          <ul id="resultados-asistente" role="listbox" class="panel-vidrio absolute bottom-full left-0 right-0 z-30 mb-[-0.75rem] flex max-h-[min(380px,55vh)] flex-col-reverse overflow-y-auto py-1" style="background: rgb(255 255 255 / 0.9)">
+          <!-- Resultados: hacia ABAJO en el estado inicial (alto limitado al
+               espacio disponible) y hacia ARRIBA con la conversación iniciada.
+               En ambos casos el mejor resultado queda pegado a la barra. -->
+          <ul
+            #listaResultados
+            id="resultados-asistente"
+            role="listbox"
+            class="panel-vidrio absolute left-0 right-0 z-30 flex overflow-y-auto py-1"
+            [ngClass]="listaAbajo() ? 'top-full mt-1.5 flex-col' : 'bottom-full mb-1.5 flex-col-reverse max-h-[min(380px,55vh)]'"
+            [style.max-height.px]="listaAbajo() ? altoLista() : null"
+            style="background: rgb(255 255 255 / 0.9); scrollbar-gutter: stable"
+          >
+            <!-- scrollbar-gutter: el ancho no cambia cuando aparece el scroll (si
+                 cambiara, el texto se reacomoda y el alto medido deja de ser exacto). -->
             @for (r of resultados(); track r.id; let k = $index) {
               <li role="option" [id]="'res-' + r.id" [attr.aria-selected]="k === indiceActivo()" class="border-t border-dep-navy/[0.07] last:border-t-0">
                 <button
                   type="button"
                   (click)="elegir(r)"
-                  (mouseenter)="indiceActivo.set(k)"
+                  (mousemove)="indiceActivo.set(k)"
                   class="flex w-full items-start gap-3 border-l-[3px] px-4 py-2.5 text-left transition cursor-pointer"
                   [ngClass]="k === indiceActivo() ? 'bg-dep-navy/[0.06]' : ''"
                   [style.border-left-color]="k === indiceActivo() ? r.modulo.color : 'transparent'"
@@ -221,6 +250,7 @@
           >
             <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
           </button>
+        </div>
         </div>
         <div class="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-1 text-[11.5px] text-slate-500">
           <p>
