@@ -9,13 +9,14 @@ describe('catálogo único (catalogo/catalogo-general.json)', () => {
     expect(validarCatalogo(real())).toEqual([]);
   });
 
-  it('sigue la nomenclatura "Informe [formato] de [contenido]" y trae los 8 informes, 2 + 3 + 3', () => {
+  it('sigue la nomenclatura "Informe [formato] de [contenido]" y trae los 10 informes, 2 + 4 + 4', () => {
     const c = real();
     expect(c.informes.every((i) => i.nombre_formal.startsWith('Informe '))).toBe(true);
     const por = (cat: string) => c.informes.filter((i) => i.categoria === cat).map((i) => i.formato);
     expect(por('consolidado')).toEqual(['xlsx', 'xlsx']);
-    expect(por('interactivo')).toEqual(['html', 'html', 'html']);
-    expect(por('estatico')).toEqual(['pdf', 'pdf', 'pdf']);
+    expect(por('interactivo')).toEqual(['html', 'html', 'html', 'html']);
+    expect(por('estatico')).toEqual(['pdf', 'pdf', 'pdf', 'pdf']);
+    expect(new Set(c.informes.map((i) => i.orden)).size).toBe(c.informes.length);
   });
 
   it('"Gestor de Formularios" se llama "Reportabilidad"', () => {
@@ -27,7 +28,7 @@ describe('catálogo único (catalogo/catalogo-general.json)', () => {
     c.informes[0].formato = 'docx' as never;
     c.informes[1].categoria = 'otra' as never;
     c.informes[2].aplicacion_id = 'no_existe';
-    c.informes[4].preguntas = []; // errores interactivo: su dirección lleva {mes}
+    c.informes.find((i) => i.id === 'sumarios_errores_interactivo')!.preguntas = []; // su dirección lleva {mes}
     c.aplicaciones[0].modulo_id = 'tampoco';
     const errores = validarCatalogo(c).join('\n');
     expect(errores).toContain('formato "docx"');

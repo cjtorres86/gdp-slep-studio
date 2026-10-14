@@ -94,7 +94,20 @@
       "palabras_clave": ["informe", "informes", "reporte", "reportes", "reporte ejecutivo", "descargar", "descarga", "descargas", "interactivo", "interactivos", "nacional", "general", "pais", "país", "indicadores", "grafico", "gráfico", "graficos", "gráficos", "tabla", "html", "web", "pantalla", "sumarios", "avance"]
     },
     {
-      "id": "sumarios_ranking_interactivo", "aplicacion_id": "reporte_avance_sumarios", "orden": 4,
+      "id": "sumarios_dashboard_interactivo", "aplicacion_id": "reporte_avance_sumarios", "orden": 4,
+      "nombre_formal": "Informe interactivo de dashboard",
+      "descripcion": "El dashboard del mes por bloques: origen, involucrados, licencias, procedimientos, resultado y ranking. Genera informes en Excel y PDF.",
+      "categoria": "interactivo", "formato": "html", "estado": "activa",
+      "url_destino": "/informe-dashboard",
+      "permiso": "exportar_informe", "requiere_alcance_todos": false,
+      "preguntas": [
+        { "clave": "mes", "texto": "¿De qué mes quieres el dashboard?", "opcion_todos": null },
+        { "clave": "slep", "texto": "¿Lo quieres de todos los SLEP o de uno en particular?", "opcion_todos": "Todos los SLEP" }
+      ],
+      "palabras_clave": ["informe", "informes", "reporte", "reportes", "reporte ejecutivo", "descargar", "descarga", "descargas", "dashboard", "tablero", "panel", "bloques", "resumen", "indicadores", "origen", "involucrados", "licencias", "procedimientos", "sanciones", "interactivo", "interactivos", "html", "web", "pantalla", "sumarios", "avance"]
+    },
+    {
+      "id": "sumarios_ranking_interactivo", "aplicacion_id": "reporte_avance_sumarios", "orden": 5,
       "nombre_formal": "Informe interactivo de ranking",
       "descripcion": "El ranking de avance de los SLEP: posiciones, cambios del mes y el detalle de cada servicio. Genera informes en Excel y PDF.",
       "categoria": "interactivo", "formato": "html", "estado": "activa",
@@ -106,7 +119,7 @@
       "palabras_clave": ["informe", "informes", "reporte", "reportes", "reporte ejecutivo", "descargar", "descarga", "descargas", "ranking", "rankings", "clasificacion", "clasificación", "posicion", "posición", "posiciones", "comparar", "interactivo", "interactivos", "html", "web", "pantalla", "sumarios", "avance"]
     },
     {
-      "id": "sumarios_errores_interactivo", "aplicacion_id": "reporte_avance_sumarios", "orden": 5,
+      "id": "sumarios_errores_interactivo", "aplicacion_id": "reporte_avance_sumarios", "orden": 6,
       "nombre_formal": "Informe interactivo de errores",
       "descripcion": "Los errores de validación del mes, para revisar en pantalla.",
       "categoria": "interactivo", "formato": "html", "estado": "activa",
@@ -119,7 +132,7 @@
       "palabras_clave": ["informe", "informes", "reporte", "reportes", "reporte ejecutivo", "descargar", "descarga", "descargas", "errores", "error", "validacion", "validación", "validaciones", "revisar", "inconsistencias", "interactivo", "interactivos", "html", "web", "pantalla", "sumarios", "avance"]
     },
     {
-      "id": "sumarios_informe_general_pdf", "aplicacion_id": "reporte_avance_sumarios", "orden": 6,
+      "id": "sumarios_informe_general_pdf", "aplicacion_id": "reporte_avance_sumarios", "orden": 7,
       "nombre_formal": "Informe estático nacional",
       "descripcion": "El informe nacional del mes, listo para guardar o imprimir.",
       "categoria": "estatico", "formato": "pdf", "estado": "activa",
@@ -132,7 +145,20 @@
       "palabras_clave": ["informe", "informes", "reporte", "reportes", "reporte ejecutivo", "descargar", "descarga", "descargas", "estatico", "estático", "estaticos", "estáticos", "nacional", "general", "pais", "país", "pdf", "imprimir", "impreso", "guardar", "sumarios", "avance"]
     },
     {
-      "id": "sumarios_ranking_pdf", "aplicacion_id": "reporte_avance_sumarios", "orden": 7,
+      "id": "sumarios_dashboard_pdf", "aplicacion_id": "reporte_avance_sumarios", "orden": 8,
+      "nombre_formal": "Informe estático de dashboard",
+      "descripcion": "El dashboard del mes, listo para guardar o imprimir.",
+      "categoria": "estatico", "formato": "pdf", "estado": "activa",
+      "url_destino": "/informe-dashboard?imprimir=1",
+      "permiso": "exportar_informe", "requiere_alcance_todos": false,
+      "preguntas": [
+        { "clave": "mes", "texto": "¿De qué mes quieres el dashboard?", "opcion_todos": null },
+        { "clave": "slep", "texto": "¿Lo quieres de todos los SLEP o de uno en particular?", "opcion_todos": "Todos los SLEP" }
+      ],
+      "palabras_clave": ["informe", "informes", "reporte", "reportes", "reporte ejecutivo", "descargar", "descarga", "descargas", "dashboard", "tablero", "panel", "bloques", "resumen", "indicadores", "estatico", "estático", "estaticos", "estáticos", "pdf", "imprimir", "impreso", "guardar", "sumarios", "avance"]
+    },
+    {
+      "id": "sumarios_ranking_pdf", "aplicacion_id": "reporte_avance_sumarios", "orden": 9,
       "nombre_formal": "Informe estático de ranking",
       "descripcion": "El ranking del mes, listo para guardar o imprimir.",
       "categoria": "estatico", "formato": "pdf", "estado": "activa",
@@ -144,7 +170,7 @@
       "palabras_clave": ["informe", "informes", "reporte", "reportes", "reporte ejecutivo", "descargar", "descarga", "descargas", "ranking", "rankings", "clasificacion", "clasificación", "posicion", "posición", "posiciones", "estatico", "estático", "estaticos", "estáticos", "pdf", "imprimir", "impreso", "guardar", "sumarios", "avance"]
     },
     {
-      "id": "sumarios_errores_pdf", "aplicacion_id": "reporte_avance_sumarios", "orden": 8,
+      "id": "sumarios_errores_pdf", "aplicacion_id": "reporte_avance_sumarios", "orden": 10,
       "nombre_formal": "Informe estático de errores",
       "descripcion": "Los errores de validación del mes, listos para guardar o imprimir.",
       "categoria": "estatico", "formato": "pdf", "estado": "activa",
