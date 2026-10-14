@@ -9,13 +9,13 @@ describe('catálogo único (catalogo/catalogo-general.json)', () => {
     expect(validarCatalogo(real())).toEqual([]);
   });
 
-  it('sigue la nomenclatura "Informe [formato] de [contenido]" y trae los 10 informes, 2 + 4 + 4', () => {
+  it('sigue la nomenclatura "Informe [formato] de [contenido]" y trae los 11 informes, 2 + 4 + 5', () => {
     const c = real();
     expect(c.informes.every((i) => i.nombre_formal.startsWith('Informe '))).toBe(true);
     const por = (cat: string) => c.informes.filter((i) => i.categoria === cat).map((i) => i.formato);
     expect(por('consolidado')).toEqual(['xlsx', 'xlsx']);
     expect(por('interactivo')).toEqual(['html', 'html', 'html', 'html']);
-    expect(por('estatico')).toEqual(['pdf', 'pdf', 'pdf', 'pdf']);
+    expect(por('estatico')).toEqual(['pdf', 'pdf', 'pdf', 'pdf', 'pdf']);
     expect(new Set(c.informes.map((i) => i.orden)).size).toBe(c.informes.length);
   });
 

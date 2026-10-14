@@ -71,10 +71,13 @@ export function construirDestino(informe: Informe, r: RespuestasInforme, sleps: 
   }
   if (camino.includes('{')) throw new RespuestaInvalida('Falta elegir el mes.');
 
-  if (informe.preguntas.some((p) => p.clave === 'slep')) {
+  const preguntaSlep = informe.preguntas.find((p) => p.clave === 'slep');
+  if (preguntaSlep) {
     // Quien trabaja con un solo SLEP siempre recibe el suyo.
     let slep = r.slep && r.slep !== 'todos' ? r.slep : null;
     if (sleps !== 'todos' && sleps.length === 1) slep = sleps[0];
+    // Un informe "por SLEP" (sin opción "todos") necesita uno.
+    if (!slep && !preguntaSlep.opcionTodos) throw new RespuestaInvalida('Este informe necesita un SLEP.');
     if (slep) {
       const permitido = sleps === 'todos' ? slepsExistentes.includes(slep) : sleps.includes(slep);
       if (!permitido) throw new RespuestaInvalida('No puedes pedir ese SLEP.');

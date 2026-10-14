@@ -83,7 +83,7 @@
     {
       "id": "sumarios_informe_interactivo", "aplicacion_id": "reporte_avance_sumarios", "orden": 3,
       "nombre_formal": "Informe interactivo nacional",
-      "descripcion": "Avance de los sumarios del país: indicadores, gráficos, ranking y tabla por SLEP. Genera informes en Word, Excel y PDF.",
+      "descripcion": "Avance de los sumarios del país: indicadores, gráficos, ranking y tabla por SLEP. Genera informes en PDF, Word y Excel.",
       "categoria": "interactivo", "formato": "html", "estado": "activa",
       "url_destino": "/informe-avance",
       "permiso": "exportar_informe", "requiere_alcance_todos": false,
@@ -91,7 +91,7 @@
         { "clave": "mes", "texto": "¿Quieres partir en un mes en especial, o prefieres el informe completo, con todos los meses?", "opcion_todos": "Informe completo, con todos los meses" },
         { "clave": "slep", "texto": "¿Lo quieres de todos los SLEP o de uno en particular?", "opcion_todos": "Todos los SLEP" }
       ],
-      "palabras_clave": ["informe", "informes", "reporte", "reportes", "reporte ejecutivo", "descargar", "descarga", "descargas", "interactivo", "interactivos", "nacional", "general", "pais", "país", "indicadores", "grafico", "gráfico", "graficos", "gráficos", "tabla", "html", "web", "pantalla", "sumarios", "avance"]
+      "palabras_clave": ["informe", "informes", "reporte", "reportes", "reporte ejecutivo", "descargar", "descarga", "descargas", "interactivo", "interactivos", "nacional", "general", "pais", "país", "indicadores", "grafico", "gráfico", "graficos", "gráficos", "tabla", "html", "web", "pantalla", "sumarios", "sumario", "avance", "avance de sumarios", "avance de sumario", "avance sumarios", "informe de avance", "informe avance", "informe avance de sumarios", "informe de avance de sumarios", "informe nacional", "informe general", "sumarios administrativos", "seguimiento", "seguimiento de sumarios", "consolidado nacional", "todos los slep", "procesos cerrados", "sumarios instruidos", "evolucion", "evolución", "mensual", "trimestral", "anual", "word", "excel", "pdf"]
     },
     {
       "id": "sumarios_dashboard_interactivo", "aplicacion_id": "reporte_avance_sumarios", "orden": 4,
@@ -134,18 +134,30 @@
     {
       "id": "sumarios_informe_general_pdf", "aplicacion_id": "reporte_avance_sumarios", "orden": 7,
       "nombre_formal": "Informe estático nacional",
-      "descripcion": "El informe nacional del mes, listo para guardar o imprimir.",
+      "descripcion": "El informe nacional del mes, de todos los SLEP, listo para guardar o imprimir.",
+      "categoria": "estatico", "formato": "pdf", "estado": "activa",
+      "url_destino": "/informe/{mes}/{anio}?imprimir=1",
+      "permiso": "exportar_informe", "requiere_alcance_todos": false,
+      "preguntas": [
+        { "clave": "mes", "texto": "¿De qué mes quieres el informe nacional?", "opcion_todos": null }
+      ],
+      "palabras_clave": ["informe", "informes", "reporte", "reportes", "reporte ejecutivo", "descargar", "descarga", "descargas", "estatico", "estático", "estaticos", "estáticos", "nacional", "general", "pais", "país", "pdf", "imprimir", "impreso", "guardar", "sumarios", "sumario", "avance", "avance de sumarios", "informe de avance", "informe avance", "informe nacional", "informe general", "todos los slep", "consolidado nacional", "sumarios administrativos"]
+    },
+    {
+      "id": "sumarios_informe_slep_pdf", "aplicacion_id": "reporte_avance_sumarios", "orden": 8,
+      "nombre_formal": "Informe estático por SLEP",
+      "descripcion": "El informe del mes de un SLEP en particular, listo para guardar o imprimir.",
       "categoria": "estatico", "formato": "pdf", "estado": "activa",
       "url_destino": "/informe/{mes}/{anio}?imprimir=1",
       "permiso": "exportar_informe", "requiere_alcance_todos": false,
       "preguntas": [
         { "clave": "mes", "texto": "¿De qué mes quieres el informe?", "opcion_todos": null },
-        { "clave": "slep", "texto": "¿Lo quieres de todos los SLEP o de uno en particular?", "opcion_todos": "Todos los SLEP" }
+        { "clave": "slep", "texto": "¿De qué SLEP quieres el informe?", "opcion_todos": null }
       ],
-      "palabras_clave": ["informe", "informes", "reporte", "reportes", "reporte ejecutivo", "descargar", "descarga", "descargas", "estatico", "estático", "estaticos", "estáticos", "nacional", "general", "pais", "país", "pdf", "imprimir", "impreso", "guardar", "sumarios", "avance"]
+      "palabras_clave": ["informe", "informes", "reporte", "reportes", "reporte ejecutivo", "descargar", "descarga", "descargas", "estatico", "estático", "estaticos", "estáticos", "por slep", "informe por slep", "informe slep", "informe de un slep", "reporte por slep", "slep", "sleps", "mi slep", "un slep", "servicio local", "servicios locales", "por servicio", "informe por servicio", "pdf", "imprimir", "impreso", "guardar", "sumarios", "sumario", "avance", "avance de sumarios", "informe de avance"]
     },
     {
-      "id": "sumarios_dashboard_pdf", "aplicacion_id": "reporte_avance_sumarios", "orden": 8,
+      "id": "sumarios_dashboard_pdf", "aplicacion_id": "reporte_avance_sumarios", "orden": 9,
       "nombre_formal": "Informe estático de dashboard",
       "descripcion": "El dashboard del mes, listo para guardar o imprimir.",
       "categoria": "estatico", "formato": "pdf", "estado": "activa",
@@ -158,7 +170,7 @@
       "palabras_clave": ["informe", "informes", "reporte", "reportes", "reporte ejecutivo", "descargar", "descarga", "descargas", "dashboard", "tablero", "panel", "bloques", "resumen", "indicadores", "estatico", "estático", "estaticos", "estáticos", "pdf", "imprimir", "impreso", "guardar", "sumarios", "avance"]
     },
     {
-      "id": "sumarios_ranking_pdf", "aplicacion_id": "reporte_avance_sumarios", "orden": 9,
+      "id": "sumarios_ranking_pdf", "aplicacion_id": "reporte_avance_sumarios", "orden": 10,
       "nombre_formal": "Informe estático de ranking",
       "descripcion": "El ranking del mes, listo para guardar o imprimir.",
       "categoria": "estatico", "formato": "pdf", "estado": "activa",
@@ -170,7 +182,7 @@
       "palabras_clave": ["informe", "informes", "reporte", "reportes", "reporte ejecutivo", "descargar", "descarga", "descargas", "ranking", "rankings", "clasificacion", "clasificación", "posicion", "posición", "posiciones", "estatico", "estático", "estaticos", "estáticos", "pdf", "imprimir", "impreso", "guardar", "sumarios", "avance"]
     },
     {
-      "id": "sumarios_errores_pdf", "aplicacion_id": "reporte_avance_sumarios", "orden": 10,
+      "id": "sumarios_errores_pdf", "aplicacion_id": "reporte_avance_sumarios", "orden": 11,
       "nombre_formal": "Informe estático de errores",
       "descripcion": "Los errores de validación del mes, listos para guardar o imprimir.",
       "categoria": "estatico", "formato": "pdf", "estado": "activa",

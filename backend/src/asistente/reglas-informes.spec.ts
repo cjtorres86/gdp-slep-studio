@@ -46,6 +46,14 @@ describe('construirDestino', () => {
     expect(construirDestino(informe({ ruta: '/informe-ranking?imprimir=1', preguntas: [MES] }), { mes: { mes: 'Agosto', anio: '2026' } }, 'todos', TODOS)).toBe('/informe-ranking?imprimir=1&mes=Agosto&anio=2026');
     expect(() => construirDestino(informe({ ruta: '/informe-ranking', preguntas: [MES] }), { mes: 'todos' }, 'todos', TODOS)).toThrow(RespuestaInvalida);
   });
+  it('informe por SLEP: exige un SLEP (sin "todos"); quien trabaja con uno solo recibe el suyo', () => {
+    const SLEP_OBLIGATORIO = { clave: 'slep' as const, texto: '', opcionTodos: null };
+    const i = informe({ ruta: '/informe/{mes}/{anio}?imprimir=1', preguntas: [MES, SLEP_OBLIGATORIO] });
+    expect(construirDestino(i, { mes: { mes: 'Agosto', anio: '2026' }, slep: 'Valdivia' }, 'todos', TODOS)).toBe('/informe/Agosto/2026?imprimir=1&slep=Valdivia');
+    expect(() => construirDestino(i, { mes: { mes: 'Agosto', anio: '2026' }, slep: 'todos' }, 'todos', TODOS)).toThrow(RespuestaInvalida);
+    expect(() => construirDestino(i, { mes: { mes: 'Agosto', anio: '2026' } }, 'todos', TODOS)).toThrow(RespuestaInvalida);
+    expect(construirDestino(i, { mes: { mes: 'Agosto', anio: '2026' } }, ['Barrancas'], TODOS)).toBe('/informe/Agosto/2026?imprimir=1&slep=Barrancas');
+  });
   it('un informe que necesita mes no se abre con "todos los meses"', () => {
     const i = informe({ ruta: '/informe/{mes}/{anio}', preguntas: [MES] });
     expect(() => construirDestino(i, { mes: 'todos' }, 'todos', TODOS)).toThrow(RespuestaInvalida);
