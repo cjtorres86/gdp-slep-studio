@@ -19,11 +19,13 @@ export interface PermisoCatalogo {
 export const CATALOGO_SUMARIOS: PermisoCatalogo[] = [
   { clave: 'dashboard', grupo: 'Pantallas', tipo: 'vista', etiqueta: 'Panel de avance', descripcion: 'Ver el tablero con ranking, gráficos y desglose.' },
   { clave: 'formulario', grupo: 'Pantallas', tipo: 'vista', etiqueta: 'Formularios', descripcion: 'Ver los datos del formulario de cada SLEP y mes.' },
-  { clave: 'inspector', grupo: 'Pantallas', tipo: 'vista', etiqueta: 'Inspector de validaciones', descripcion: 'Ver qué campos tienen errores y por qué.' },
+  { clave: 'inspector', grupo: 'Pantallas', tipo: 'vista', etiqueta: 'Asistente de formulario', descripcion: 'Ver la ayuda de cada pregunta y qué campos tienen errores y por qué.' },
   { clave: 'exportar_informe', grupo: 'Pantallas', tipo: 'vista', etiqueta: 'Informe interactivo', descripcion: 'Ver el informe e imprimirlo o guardarlo en PDF.' },
   { clave: 'historico', grupo: 'Pantallas', tipo: 'vista', etiqueta: 'Histórico', descripcion: 'Comparar el avance entre meses.' },
 
-  { clave: 'importar_excel', grupo: 'Carga de datos', tipo: 'accion', etiqueta: 'Cargar archivos Excel', descripcion: 'Subir un Excel para llenar el formulario. Exige que la persona pueda cargar datos.', requiereCarga: true },
+  // Botón "Cargar datos" del formulario. Activado en todos los perfiles; se
+  // puede desactivar perfil por perfil.
+  { clave: 'importar_excel', grupo: 'Carga de datos', tipo: 'accion', etiqueta: 'Cargar datos', descripcion: 'Botón «Cargar datos»: traer los datos del mes anterior o subir un archivo Excel. Exige que la persona pueda cargar datos.', requiereCarga: true },
   { clave: 'editar_mes_cerrado', grupo: 'Carga de datos', tipo: 'accion', etiqueta: 'Editar meses cerrados', descripcion: 'Corregir datos de un mes que ya fue cerrado.', sensible: true, requiereCarga: true },
 
   { clave: 'crear_mes', grupo: 'Gestión de meses', tipo: 'accion', etiqueta: 'Crear mes', descripcion: 'Abrir un mes nuevo para los SLEP.' },
@@ -80,7 +82,7 @@ export const PERFILES_INICIALES_SUMARIOS = [
   {
     id: 'perfil_visita', nombre: 'Visita', color: '#64748B', orden: 4,
     descripcion: 'Solo puede ver y descargar. No modifica nada.',
-    permisos: [...PANTALLAS, 'exportar_excel_consolidado', 'exportar_excel_slep'],
+    permisos: [...PANTALLAS, 'importar_excel', 'exportar_excel_consolidado', 'exportar_excel_slep'],
     restricciones: { exigeSlep: false, carga: 'nunca', cargaSoloSuperadmin: false } as RestriccionesPerfil,
   },
 ];
