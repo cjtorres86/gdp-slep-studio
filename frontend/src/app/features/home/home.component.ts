@@ -8,8 +8,6 @@ import { Component, ElementRef, HostListener, OnDestroy, OnInit, computed, effec
 import { AuthService } from '../../core/auth.service';
 import { CatalogoService } from '../../core/catalogo.service';
 import { PanelConfigService } from '../../core/panel-config.service';
-import { atraparTab } from '../../core/atrapar-tab';
-import { bloquearFondoMientras } from '../../core/bloquear-fondo';
 
 // Tiempo que se muestra "Construyendo…" antes de abrir.
 const ESPERA_CONSTRUYENDO_MS = 1500;
@@ -292,14 +290,13 @@ export class HomeComponent implements OnInit, OnDestroy {
   // todas cerradas al entrar la primera vez; se recuerda en este navegador. ----------
   readonly abiertas = signal<Set<string>>(this.leerAcordeon());
 
-  // ---------- Ventana "Marco legal" ----------
-  readonly marcoAbierto = signal(false);
-  private readonly ventanaMarco = viewChild<ElementRef<HTMLElement>>('ventanaMarco');
-  private disparadorMarco: HTMLElement | null = null;
+  // Ventana de Aplicaciones: solo los módulos de aplicaciones (Configuración y
+  // Documentación están en Opciones, en la barra superior) y, al final,
+  // espacios para las próximas aplicaciones (hasta completar 4 columnas).
+  readonly modulosApps = computed(() => this.modulos().filter((m) => m.id !== 'configuracion' && m.id !== 'documentacion'));
+  readonly espaciosLibres = computed(() => Array.from({ length: Math.max(1, 4 - this.modulosApps().length) }, (_, k) => k));
 
-  constructor(readonly auth: AuthService) {
-    bloquearFondoMientras(this.marcoAbierto);
-  }
+  constructor(readonly auth: AuthService) {}
 
   ngOnInit(): void {
     // Cada visita parte con la conversación vacía (barra al medio, como una
@@ -802,35 +799,14 @@ export class HomeComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ---------- Marco legal ----------
-  // Configuración → Vista desde el panel izquierdo: la misma ventana de la barra superior.
-  abrirVista(e: Event): void {
-    this.panelConfig.abrir(e.currentTarget as HTMLElement);
-  }
-
-  abrirMarco(e: Event): void {
-    this.disparadorMarco = e.currentTarget as HTMLElement;
-    this.marcoAbierto.set(true);
-    setTimeout(() => this.ventanaMarco()?.nativeElement.querySelector<HTMLElement>('[data-cerrar]')?.focus());
-  }
-
-  cerrarMarco(): void {
-    if (!this.marcoAbierto()) return;
-    this.marcoAbierto.set(false);
-    setTimeout(() => this.disparadorMarco?.focus());
-  }
-
   @HostListener('document:keydown', ['$event'])
   alPresionarTecla(e: KeyboardEvent): void {
-    if (!this.marcoAbierto()) {
-      if (e.key === 'Escape' && this.appsAbierto()) {
-        this.appsAbierto.set(false);
-        this.botonApps()?.nativeElement.focus();
-      }
-      return;
+    // Con una ventana de la barra superior abierta, Esc es de esa ventana.
+    if (this.panelConfig.abierto() || this.panelConfig.marcoAbierto()) return;
+    if (e.key === 'Escape' && this.appsAbierto()) {
+      this.appsAbierto.set(false);
+      this.botonApps()?.nativeElement.focus();
     }
-    if (e.key === 'Escape') this.cerrarMarco();
-    else atraparTab(e, this.ventanaMarco()?.nativeElement);
   }
 
   // Cierra el menú de resultados al hacer clic fuera de la búsqueda.

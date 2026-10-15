@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Component, DestroyRef, ElementRef, HostListener, OnInit, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { CAMBIO_IMAGEN_MS, FONDOS, FONDO_INSTITUCIONAL, FondoPortal, ImagenFondo, RECORRIDO_MS, fondoPorId } from '../../core/fondos';
-import { PanelConfigService } from '../../core/panel-config.service';
+import { PanelConfigService, PantallaOpciones } from '../../core/panel-config.service';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map } from 'rxjs';
@@ -21,6 +21,29 @@ function leerRecorrido(): boolean {
     return false;
   }
 }
+
+// Ventana Opciones: título de cada pantalla, la pantalla de la que viene
+// (para «Volver») y lo que explica cada opción.
+const TITULO_PANTALLA: Record<PantallaOpciones, string> = {
+  inicio: 'Opciones',
+  configuracion: 'Configuración',
+  administracion: 'Administración',
+  vista: 'Vista',
+  documentacion: 'Documentación',
+};
+const PANTALLA_ANTERIOR: Record<PantallaOpciones, PantallaOpciones> = {
+  inicio: 'inicio',
+  configuracion: 'inicio',
+  administracion: 'configuracion',
+  vista: 'configuracion',
+  documentacion: 'inicio',
+};
+const TEXTO_OPCION = {
+  configuracion: 'Ajusta cómo ves el portal y, si administras, quién entra y qué puede hacer cada persona.',
+  documentacion: 'Respaldo formal del sistema: cómo se construyó y funciona, y las normas en que se apoya cada proceso.',
+  administracion: 'Gestiona las cuentas de las personas, los perfiles y permisos de cada aplicación, y revisa el registro de lo que se hace en el portal.',
+  vista: 'Elige el fondo de pantalla del portal: un paisaje de Chile o el institucional. Es solo tuyo y se guarda en tu cuenta.',
+};
 
 const ETIQUETA_ROL: Record<RolPortal, string> = {
   superadmin: 'Superadmin',
@@ -41,6 +64,27 @@ export class LayoutComponent implements OnInit {
   readonly configuracion = this.catalogo.configuracion;
   private readonly panel = inject(PanelConfigService);
   readonly configAbierta = this.panel.abierto;
+  readonly pantalla = this.panel.pantalla;
+  readonly marcoAbierto = this.panel.marcoAbierto;
+  readonly TITULO_PANTALLA = TITULO_PANTALLA;
+  readonly TEXTO_OPCION = TEXTO_OPCION;
+  // Documentación (Opciones → Documentación): sus documentos, del catálogo.
+  readonly documentacion = computed(() => this.catalogo.modulos().find((m) => m.id === 'documentacion')?.aplicaciones ?? []);
+  // «Opciones · Configuración»: dónde se está, sobre el título.
+  readonly rutaOpciones = computed(() => {
+    const ruta: string[] = [];
+    for (let p = this.pantalla(); p !== 'inicio'; p = PANTALLA_ANTERIOR[p]) ruta.unshift(TITULO_PANTALLA[p]);
+    return ruta.length ? ['Opciones', ...ruta.slice(0, -1)].join(' · ') : 'Portal de aplicaciones';
+  });
+  readonly textoPantalla = computed(() => {
+    switch (this.pantalla()) {
+      case 'inicio': return 'Elige qué quieres revisar.';
+      case 'administracion': return 'Elige qué quieres administrar. Cada opción explica para qué sirve.';
+      case 'vista': return 'El fondo va detrás de las tarjetas y la conversación. Se guarda en tu cuenta.';
+      case 'documentacion': return 'Los documentos que respaldan el sistema. Cada uno indica para qué sirve.';
+      default: return TEXTO_OPCION.configuracion;
+    }
+  });
   // ¿Estamos en el inicio (asistente)? Ahí la página mide el alto de la ventana y no lleva pie.
   private readonly router = inject(Router);
   readonly enInicio = toSignal(
@@ -52,6 +96,8 @@ export class LayoutComponent implements OnInit {
   );
   private readonly botonConfig = viewChild<ElementRef<HTMLButtonElement>>('botonConfig');
   private readonly ventanaConfig = viewChild<ElementRef<HTMLElement>>('ventanaConfig');
+  private readonly botonMarco = viewChild<ElementRef<HTMLButtonElement>>('botonMarco');
+  private readonly ventanaMarco = viewChild<ElementRef<HTMLElement>>('ventanaMarco');
   private readonly http = inject(HttpClient);
 
   // ---------- Configuración → Vista: fondo de pantalla de cada persona ----------
@@ -95,12 +141,13 @@ export class LayoutComponent implements OnInit {
 
   constructor(readonly auth: AuthService) {
     bloquearFondoMientras(this.configAbierta);
+    bloquearFondoMientras(this.marcoAbierto);
     const reloj = setInterval(() => this.tic.update((t) => t + 1), CAMBIO_IMAGEN_MS);
     const relojRecorrido = setInterval(() => { if (this.recorrido()) this.ticRecorrido.update((t) => t + 1); }, RECORRIDO_MS);
     inject(DestroyRef).onDestroy(() => { clearInterval(reloj); clearInterval(relojRecorrido); });
     // Al abrir la ventana: la tarjeta elegida queda a la vista en el carrusel.
     effect(() => {
-      if (!this.configAbierta()) return;
+      if (!this.configAbierta() || this.pantalla() !== 'vista') return;
       setTimeout(() => {
         const c = this.carrusel()?.nativeElement;
         const elegida = c?.querySelector<HTMLElement>('.opcion-fondo.elegida');
@@ -157,6 +204,37 @@ export class LayoutComponent implements OnInit {
     this.panel.abrir(this.botonConfig()?.nativeElement);
   }
 
+  // Ventana Opciones: entrar a una opción o volver a la anterior (el foco
+  // queda en la ventana).
+  irA(pantalla: PantallaOpciones): void {
+    this.pantalla.set(pantalla);
+    this.enfocarVentana();
+  }
+
+  volver(): void {
+    this.irA(PANTALLA_ANTERIOR[this.pantalla()]);
+  }
+
+  private enfocarVentana(): void {
+    setTimeout(() => {
+      const v = this.ventanaConfig()?.nativeElement;
+      v?.scrollTo({ top: 0 });
+      v?.querySelector<HTMLElement>('ul button, ul a, [data-cerrar]')?.focus();
+    });
+  }
+
+  // ---------- Ver marco legal (barra superior) ----------
+  abrirMarco(): void {
+    this.marcoAbierto.set(true);
+    setTimeout(() => this.ventanaMarco()?.nativeElement.querySelector<HTMLElement>('[data-cerrar]')?.focus());
+  }
+
+  cerrarMarco(): void {
+    if (!this.marcoAbierto()) return;
+    this.marcoAbierto.set(false);
+    setTimeout(() => this.botonMarco()?.nativeElement.focus());
+  }
+
   // Se abra desde donde se abra (barra superior o panel izquierdo), el foco
   // entra a la ventana.
   private readonly enfocarAlAbrir = effect(() => {
@@ -174,6 +252,11 @@ export class LayoutComponent implements OnInit {
 
   @HostListener('document:keydown', ['$event'])
   alPresionarTecla(e: KeyboardEvent): void {
+    if (this.marcoAbierto()) {
+      if (e.key === 'Escape') this.cerrarMarco();
+      else atraparTab(e, this.ventanaMarco()?.nativeElement);
+      return;
+    }
     if (!this.configAbierta()) return;
     if (e.key === 'Escape') this.cerrarConfig();
     else atraparTab(e, this.ventanaConfig()?.nativeElement);
