@@ -350,25 +350,29 @@ html.plano main .bg-white:not(input):not(select):not(textarea):not(button) {
   .despliegue, .despliegue .tarjeta-sube, .despliegue > * > ul { transition: none; }
 }
 
-/* Lista de resultados de la búsqueda: aparece revelándose desde el borde de
-   la barra (hacia abajo en el inicio, hacia arriba con la conversación) con
-   un fundido, y al cerrarse se recoge hacia la barra desde el alto que tenga
-   en ese momento (--alto-salida). */
-.lista-resultados { animation: lista-entra-abajo var(--despliegue); }
-.lista-resultados.hacia-arriba { animation-name: lista-entra-arriba; --hacia-barra: 32px; }
+/* Lista de resultados de la búsqueda: aparece con un fundido corto y sus
+   filas en cascada desde la barra (hacia abajo en el inicio, hacia arriba
+   con la conversación); al cerrarse se recoge hacia la barra desde el alto
+   que tenga en ese momento (--alto-salida). */
+.lista-resultados { animation: lista-aparece .2s ease; }
+.lista-resultados.hacia-arriba { --hacia-barra: 32px; }
+/* Las filas entran en cascada, desde la más cercana a la barra hacia afuera
+   (--k = su lugar, hasta 8): cada una se desliza y aparece 30 ms después de
+   la anterior; toda la cascada termina en unos 0,5 s. */
+.fila-resultado { animation: fila-entra .3s cubic-bezier(.22, .8, .24, 1) calc(var(--k, 0) * 30ms) both; }
+.hacia-arriba .fila-resultado { animation-name: fila-entra-arriba; }
+.saliendo .fila-resultado { animation: none; }
+@keyframes lista-aparece { from { opacity: 0; } }
+@keyframes fila-entra { from { opacity: 0; transform: translateY(-12px); } }
+@keyframes fila-entra-arriba { from { opacity: 0; transform: translateY(12px); } }
+/* El saludo y la barra se acomodan al mismo ritmo que la lista. */
+.mover-suave { transition: transform var(--despliegue); }
 .lista-resultados.saliendo { animation: lista-sale var(--despliegue) forwards; pointer-events: none; }
-@keyframes lista-entra-abajo {
-  from { clip-path: inset(0 0 100% 0); opacity: 0; transform: translateY(-32px); }
-  to { clip-path: inset(0); opacity: 1; transform: none; }
-}
-@keyframes lista-entra-arriba {
-  from { clip-path: inset(100% 0 0 0); opacity: 0; transform: translateY(32px); }
-  to { clip-path: inset(0); opacity: 1; transform: none; }
-}
 @keyframes lista-sale {
   from { max-height: var(--alto-salida); }
   to { max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; transform: translateY(var(--hacia-barra, -32px)); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .lista-resultados, .lista-resultados.saliendo { animation: none; }
+  .lista-resultados, .lista-resultados.saliendo, .fila-resultado { animation: none; }
+  .mover-suave { transition: none; }
 }

@@ -10,7 +10,7 @@
            justo para que la lista de resultados quepa abajo. -->
       <div
         #conversacion
-        class="flex min-h-0 flex-col gap-3 overflow-y-auto pt-8 transition-transform duration-200 ease-out motion-reduce:transition-none"
+        class="flex min-h-0 flex-col gap-3 overflow-y-auto pt-8 mover-suave"
         [class.flex-1]="iniciada()"
         [style.transform]="desplazamiento() ? 'translateY(-' + desplazamiento() + 'px)' : null"
         (scroll)="alDesplazarConversacion()"
@@ -36,7 +36,7 @@
       <!-- Barra de búsqueda tipo "prompt" (abajo una vez iniciada la conversación). -->
       <div
         #bloqueBusqueda
-        class="relative z-20 shrink-0 pb-6 pt-4 transition-transform duration-200 ease-out motion-reduce:transition-none"
+        class="relative z-20 shrink-0 pb-6 pt-4 mover-suave"
         [style.transform]="desplazamiento() ? 'translateY(-' + desplazamiento() + 'px)' : null"
         data-busqueda
       >
@@ -208,7 +208,7 @@
             <!-- scrollbar-gutter: el ancho no cambia cuando aparece el scroll (si
                  cambiara, el texto se reacomoda y el alto medido deja de ser exacto). -->
             @for (r of resultadosLista(); track r.id; let k = $index) {
-              <li role="option" [id]="'res-' + r.id" [attr.aria-selected]="k === indiceActivo()" class="border-t border-dep-navy/[0.07] last:border-t-0">
+              <li role="option" [id]="'res-' + r.id" [attr.aria-selected]="k === indiceActivo()" class="fila-resultado border-t border-dep-navy/[0.07] last:border-t-0" [style.--k]="k < 8 ? k : 8">
                 <button
                   type="button"
                   (click)="elegir(r)"
