@@ -112,7 +112,7 @@
       "descripcion": "El ranking de avance de los SLEP: posiciones, cambios del mes y el detalle de cada servicio. Genera informes en Excel y PDF.",
       "categoria": "interactivo", "formato": "html", "estado": "activa",
       "url_destino": "/informe-ranking",
-      "permiso": "exportar_informe", "requiere_alcance_todos": false,
+      "permiso": "exportar_informe", "requiere_alcance_todos": true,
       "preguntas": [
         { "clave": "mes", "texto": "¿De qué mes quieres el ranking?", "opcion_todos": null }
       ],
@@ -149,7 +149,7 @@
       "descripcion": "El informe del mes de un SLEP en particular, listo para guardar o imprimir.",
       "categoria": "estatico", "formato": "pdf", "estado": "activa",
       "url_destino": "/informe/{mes}/{anio}?imprimir=1",
-      "permiso": "exportar_informe", "requiere_alcance_todos": false,
+      "permiso": "exportar_informe", "requiere_alcance_todos": true,
       "preguntas": [
         { "clave": "mes", "texto": "¿De qué mes quieres el informe?", "opcion_todos": null },
         { "clave": "slep", "texto": "¿De qué SLEP quieres el informe?", "opcion_todos": null }
@@ -175,7 +175,7 @@
       "descripcion": "El ranking del mes, listo para guardar o imprimir.",
       "categoria": "estatico", "formato": "pdf", "estado": "activa",
       "url_destino": "/informe-ranking?imprimir=1",
-      "permiso": "exportar_informe", "requiere_alcance_todos": false,
+      "permiso": "exportar_informe", "requiere_alcance_todos": true,
       "preguntas": [
         { "clave": "mes", "texto": "¿De qué mes quieres el ranking?", "opcion_todos": null }
       ],

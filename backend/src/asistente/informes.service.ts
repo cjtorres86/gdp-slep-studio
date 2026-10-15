@@ -9,7 +9,7 @@ import { Usuario } from '../usuarios/entities/usuario.entity';
 import { IngresoUnicoService } from '../ingreso-unico/ingreso-unico.service';
 import { variableClave } from '../ingreso-unico/identidad';
 import { Informe } from './informe.entity';
-import { InformeVista, RespuestaInvalida, RespuestasInforme, construirDestino, informeAutorizado, slepsDe } from './reglas-informes';
+import { InformeVista, RespuestaInvalida, RespuestasInforme, construirDestino, informeAutorizado, slepsDe, textosPara, visiblePara } from './reglas-informes';
 
 // Cuánto se recuerda la lista de meses de cada aplicación (no cambia seguido).
 const VIGENCIA_MESES_MS = 60_000;
@@ -38,15 +38,18 @@ export class InformesService {
       this.aplicaciones.find(),
     ]);
     const activas = new Set(apps.filter((a) => a.estado === 'activa').map((a) => a.id));
+    // Quien trabaja con un solo SLEP solo ve lo suyo, con el nombre de su SLEP.
+    const slepsPara = (aplicacionId: string) => slepsDe(usuario.rolPortal, accesos.find((a) => a.aplicacionId === aplicacionId));
     return informes
-      .filter((i) => activas.has(i.aplicacionId))
+      .filter((i) => activas.has(i.aplicacionId) && visiblePara(i, slepsPara(i.aplicacionId)))
       .map((i) => {
         const acceso = accesos.find((a) => a.aplicacionId === i.aplicacionId);
+        const textos = textosPara(i, slepsDe(usuario.rolPortal, acceso));
         return {
           id: i.id,
           aplicacionId: i.aplicacionId,
-          nombre: i.nombre,
-          descripcion: i.descripcion,
+          nombre: textos.nombre,
+          descripcion: textos.descripcion,
           formato: i.formato,
           categoria: i.categoria,
           estado: i.estado,

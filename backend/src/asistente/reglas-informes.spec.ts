@@ -1,7 +1,7 @@
 import { Acceso } from '../catalogo/entities/acceso.entity';
 import { PerfilAplicacion } from '../perfiles/perfil-aplicacion.entity';
 import { Informe } from './informe.entity';
-import { construirDestino, informeAutorizado, RespuestaInvalida, slepsDe } from './reglas-informes';
+import { construirDestino, informeAutorizado, RespuestaInvalida, slepsDe, textosPara, visiblePara } from './reglas-informes';
 
 const informe = (x: Partial<Informe>) => ({ id: 'i', aplicacionId: 'sumarios', permiso: 'exportar_informe', requiereAlcanceTodos: false, preguntas: [], ruta: '/x', ...x }) as Informe;
 const acceso = (rol: string, alcance: string[]) => ({ usuarioId: 'u', aplicacionId: 'sumarios', rol, alcance }) as Acceso;
@@ -29,6 +29,20 @@ describe('informeAutorizado', () => {
     const i = informe({ permiso: 'exportar_excel_consolidado', requiereAlcanceTodos: true });
     expect(informeAutorizado(i, 'usuario', acceso('perfil_admin', ['Barrancas']), perfiles)).toBe(false);
     expect(informeAutorizado(i, 'usuario', acceso('perfil_admin', ['todos']), perfiles)).toBe(true);
+  });
+});
+
+describe('un solo SLEP: solo lo suyo, con su nombre', () => {
+  it('no ve los informes de todos los SLEP (rankings, consolidados de los 36, por SLEP)', () => {
+    expect(visiblePara(informe({ requiereAlcanceTodos: true }), ['Valdivia'])).toBe(false);
+    expect(visiblePara(informe({ requiereAlcanceTodos: false }), ['Valdivia'])).toBe(true);
+    expect(visiblePara(informe({ requiereAlcanceTodos: true }), 'todos')).toBe(true);
+  });
+  it('"nacional" pasa a ser su SLEP, en el nombre y la descripción', () => {
+    const i = { nombre: 'Informe interactivo nacional', descripcion: 'Avance de los sumarios del país: indicadores.' };
+    expect(textosPara(i, ['Valdivia'])).toEqual({ nombre: 'Informe interactivo Valdivia', descripcion: 'Avance de los sumarios de Valdivia: indicadores.' });
+    expect(textosPara({ nombre: 'Informe estático nacional', descripcion: 'El informe nacional del mes, de todos los SLEP, listo.' }, ['Valdivia']).nombre).toBe('Informe estático Valdivia');
+    expect(textosPara(i, 'todos')).toEqual(i);
   });
 });
 

@@ -38,6 +38,23 @@ export function slepsDe(rolPortal: RolPortal, acceso: Acceso | undefined): 'todo
   return acceso?.alcance ?? [];
 }
 
+// Quien trabaja con un solo SLEP solo ve lo suyo: los informes "de todos los
+// SLEP" (rankings, consolidados de los 36, por SLEP) no se le muestran.
+export function visiblePara(informe: Informe, sleps: 'todos' | string[]): boolean {
+  return sleps === 'todos' || !informe.requiereAlcanceTodos;
+}
+
+// Y lo "nacional" es su SLEP: "Informe interactivo nacional" pasa a
+// "Informe interactivo Valdivia" (también en la descripción).
+export function textosPara(informe: Pick<Informe, 'nombre' | 'descripcion'>, sleps: 'todos' | string[]): { nombre: string; descripcion: string } {
+  if (sleps === 'todos' || sleps.length !== 1) return { nombre: informe.nombre, descripcion: informe.descripcion };
+  const slep = sleps[0];
+  return {
+    nombre: informe.nombre.replace(/\bnacional\b/i, slep),
+    descripcion: informe.descripcion.replace(/\bdel país\b/i, `de ${slep}`).replace(/\bde todos los SLEP\b/i, `de ${slep}`),
+  };
+}
+
 export interface RespuestasInforme {
   mes?: { mes: string; anio: string } | 'todos';
   slep?: string | 'todos';
