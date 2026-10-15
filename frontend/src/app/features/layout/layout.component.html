@@ -1,20 +1,29 @@
 <!-- En el inicio (asistente) la página ocupa justo el alto de la ventana: la
      barra de búsqueda queda abajo y la conversación sube, como en una IA. -->
-<!-- Fondo: el institucional, o la imagen que eligió la persona en Configuración → Vista. -->
+<!-- Fondo: el institucional, la imagen que eligió la persona en Configuración → Vista
+     o, con el interruptor del encabezado encendido, el recorrido por todos los paisajes. -->
 <div
   class="fondo-portal flex flex-col"
   [class.h-dvh]="enInicio()"
   [class.min-h-screen]="!enInicio()"
-  [class.con-imagen]="!!fondo()"
+  [class.con-imagen]="conImagen()"
 >
   <!-- Imágenes del fondo elegido, una sobre otra: la activa aparece con un
        fundido (las de varios fondos se pasan cada 7 s). Encima, un velo claro. -->
-  @if (fondo(); as f) {
+  @if (recorrido()) {
     <div class="capas-fondo" aria-hidden="true">
-      @for (img of f.imagenes; track img.archivo; let k = $index) {
-        <div class="capa-fondo" [class.activa]="k === indiceImagen(f)" [style.background-image]="'url(' + img.archivo + ')'"></div>
+      @for (c of capasRecorrido(); track c.img.archivo) {
+        <div class="capa-fondo" [class.activa]="c.activa" [style.background-image]="'url(' + c.img.archivo + ')'"></div>
       }
     </div>
+  } @else {
+    @if (fondo(); as f) {
+      <div class="capas-fondo" aria-hidden="true">
+        @for (img of f.imagenes; track img.archivo; let k = $index) {
+          <div class="capa-fondo" [class.activa]="k === indiceImagen(f)" [style.background-image]="'url(' + img.archivo + ')'"></div>
+        }
+      </div>
+    }
   }
   <!-- Encabezado a todo el ancho: el logo en la orilla izquierda y los botones
        en la derecha, como en las aplicaciones. -->
@@ -32,6 +41,24 @@
       </div>
 
       <div class="ml-auto flex items-center gap-2 py-3 sm:gap-4">
+        <!-- Recorrido de paisajes: como el interruptor de modo oscuro, pero pasa
+             por todos los fondos de pantalla, uno cada 12 s. -->
+        <button
+          type="button"
+          role="switch"
+          [attr.aria-checked]="recorrido()"
+          (click)="alternarRecorrido()"
+          class="interruptor-paisajes redondo"
+          [class.encendido]="recorrido()"
+          [title]="recorrido() ? 'Recorrido de paisajes encendido: cambia cada 12 s. Clic para apagarlo' : 'Recorrer todos los paisajes (cambia cada 12 s)'"
+          aria-label="Recorrer todos los paisajes"
+        >
+          <span class="pista redondo" aria-hidden="true">
+            <span class="perilla redondo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18 9 11l4 4 3-3 5 6" /><circle cx="16" cy="7" r="1.6" /></svg>
+            </span>
+          </span>
+        </button>
         <nav class="flex items-center gap-1 sm:gap-2" aria-label="Navegación del portal">
           <a
             routerLink="/"

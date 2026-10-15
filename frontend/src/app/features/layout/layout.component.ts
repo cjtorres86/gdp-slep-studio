@@ -2,7 +2,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component, DestroyRef, ElementRef, HostListener, OnInit, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { environment } from '../../../environments/environment';
-import { CAMBIO_IMAGEN_MS, FONDOS, FONDO_INSTITUCIONAL, FondoPortal, fondoPorId } from '../../core/fondos';
+import { CAMBIO_IMAGEN_MS, FONDOS, FONDO_INSTITUCIONAL, FondoPortal, ImagenFondo, RECORRIDO_MS, fondoPorId } from '../../core/fondos';
 import { PanelConfigService } from '../../core/panel-config.service';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -12,6 +12,15 @@ import { CatalogoService } from '../../core/catalogo.service';
 import { RolPortal } from '../../core/models';
 import { atraparTab } from '../../core/atrapar-tab';
 import { bloquearFondoMientras } from '../../core/bloquear-fondo';
+
+const CLAVE_RECORRIDO = 'gdp_portal_recorrido';
+function leerRecorrido(): boolean {
+  try {
+    return localStorage.getItem(CLAVE_RECORRIDO) === '1';
+  } catch {
+    return false;
+  }
+}
 
 const ETIQUETA_ROL: Record<RolPortal, string> = {
   superadmin: 'Superadmin',
@@ -55,6 +64,30 @@ export class LayoutComponent implements OnInit {
   readonly tic = signal(0);
   readonly indiceImagen = (f: FondoPortal): number => this.tic() % f.imagenes.length;
 
+  // ---------- Recorrido de paisajes (interruptor del encabezado) ----------
+  // Encendido: el fondo pasa por todas las imágenes de todos los fondos, una
+  // cada 12 s. Se recuerda en este navegador. Solo se cargan la imagen
+  // anterior (que se desvanece), la actual y la siguiente (lista para entrar).
+  private readonly todasLasImagenes: ImagenFondo[] = FONDOS.flatMap((f) => f.imagenes);
+  readonly recorrido = signal(leerRecorrido());
+  private readonly ticRecorrido = signal(0);
+  readonly capasRecorrido = computed(() => {
+    const n = this.todasLasImagenes.length, t = this.ticRecorrido() % n;
+    const cerca = new Set([(t + n - 1) % n, t, (t + 1) % n]);
+    return this.todasLasImagenes.map((img, k) => ({ img, activa: k === t, cargar: cerca.has(k) })).filter((c) => c.cargar);
+  });
+  readonly conImagen = computed(() => this.recorrido() || !!this.fondo());
+
+  alternarRecorrido(): void {
+    const valor = !this.recorrido();
+    this.recorrido.set(valor);
+    try {
+      localStorage.setItem(CLAVE_RECORRIDO, valor ? '1' : '0');
+    } catch {
+      /* sin almacenamiento: vale solo por esta visita */
+    }
+  }
+
   // Galería en carrusel: flechas a los lados (y deslizar con el dedo o el trackpad).
   private readonly carrusel = viewChild<ElementRef<HTMLElement>>('carrusel');
   readonly puedeIzquierda = signal(false);
@@ -63,7 +96,8 @@ export class LayoutComponent implements OnInit {
   constructor(readonly auth: AuthService) {
     bloquearFondoMientras(this.configAbierta);
     const reloj = setInterval(() => this.tic.update((t) => t + 1), CAMBIO_IMAGEN_MS);
-    inject(DestroyRef).onDestroy(() => clearInterval(reloj));
+    const relojRecorrido = setInterval(() => { if (this.recorrido()) this.ticRecorrido.update((t) => t + 1); }, RECORRIDO_MS);
+    inject(DestroyRef).onDestroy(() => { clearInterval(reloj); clearInterval(relojRecorrido); });
     // Al abrir la ventana: la tarjeta elegida queda a la vista en el carrusel.
     effect(() => {
       if (!this.configAbierta()) return;

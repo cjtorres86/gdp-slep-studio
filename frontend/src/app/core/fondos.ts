@@ -21,6 +21,9 @@ export interface FondoPortal {
 }
 
 export const CAMBIO_IMAGEN_MS = 7000;
+// Recorrido (interruptor del encabezado): todas las imágenes de todos los
+// fondos, una tras otra, cada RECORRIDO_MS.
+export const RECORRIDO_MS = 12000;
 
 const imagen = (nombre: string): ImagenFondo => ({ archivo: `fondos/${nombre}.webp`, miniatura: `fondos/${nombre}-mini.webp` });
 

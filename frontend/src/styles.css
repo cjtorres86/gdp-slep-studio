@@ -298,3 +298,15 @@ html.plano main .bg-white:not(input):not(select):not(textarea):not(button) {
   .grilla-modulos { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .grilla-modulos.con-documentacion { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto minmax(0, 1fr); }
 }
+
+/* Interruptor del recorrido de paisajes (encabezado): pista con una perilla
+   que se desliza, como un interruptor de modo oscuro. Apagado gris; encendido
+   azul institucional. Plano, sin sombras. */
+.interruptor-paisajes { display: inline-flex; align-items: center; padding: 2px; border-radius: 999px; cursor: pointer; background: none; border: 0; }
+.interruptor-paisajes .pista { position: relative; display: block; width: 46px; height: 26px; border-radius: 999px; background: #dfe4ee; border: 1px solid #cfd6e4; transition: background-color .25s ease, border-color .25s ease; }
+.interruptor-paisajes .perilla { position: absolute; top: 2px; left: 2px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 999px; background: #fff; color: #76839a; transition: transform .25s ease, color .25s ease; }
+.interruptor-paisajes .perilla svg { width: 13px; height: 13px; }
+.interruptor-paisajes.encendido .pista { background: #0f69b4; border-color: #0f69b4; }
+.interruptor-paisajes.encendido .perilla { transform: translateX(20px); color: #0f69b4; }
+.interruptor-paisajes:focus-visible { outline: 2px solid #0f69b4; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .interruptor-paisajes .pista, .interruptor-paisajes .perilla { transition: none; } }
