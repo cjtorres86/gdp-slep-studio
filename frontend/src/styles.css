@@ -286,12 +286,6 @@ html.plano main .bg-white:not(input):not(select):not(textarea):not(button) {
   .panel-vidrio, html.plano main .bg-white { background: rgb(255 255 255 / 0.96); }
 }
 
-/* Zona del logo en el encabezado: blanco puro, igual al fondo de la imagen del
-   logo (así no se ve como un recorte), que se desvanece hacia el resto. */
-.zona-logo {
-  background: linear-gradient(90deg, #ffffff 0, #ffffff calc(100% - 40px), rgb(255 255 255 / 0));
-}
-
 /* Líneas del lenguaje visual. */
 .linea-desvanecida { height: 1px; background: linear-gradient(90deg, transparent, rgb(37 48 107 / 0.22) 18%, rgb(37 48 107 / 0.22) 82%, transparent); }
 .linea-desvanecida-v { width: 1px; background: linear-gradient(180deg, transparent, rgb(37 48 107 / 0.2) 12%, rgb(37 48 107 / 0.2) 88%, transparent); }
