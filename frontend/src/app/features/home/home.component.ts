@@ -228,7 +228,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private readonly congelados = signal<Resultado[]>([]);
   readonly altoSalida = signal(0); // alto real al empezar a salir (desde ahí se recoge)
   readonly resultadosLista = computed(() => (this.listaVisible() ? this.resultados() : this.congelados()));
-  private static readonly SALIDA_LISTA_MS = 200;
+  private static readonly SALIDA_LISTA_MS = 500; // igual a --despliegue (styles.css)
   private finSalida: ReturnType<typeof setTimeout> | null = null;
   private listaEstabaVisible = false;
   private readonly seguirLista = effect(() => {

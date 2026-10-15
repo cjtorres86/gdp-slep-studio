@@ -326,9 +326,10 @@ html.plano main .bg-white:not(input):not(select):not(textarea):not(button) {
    alto pasa de 0 a su tamaño natural (filas 0fr → 1fr; el margen interior va
    en un elemento de adentro, para que cerrado mida 0), así lo de alrededor
    se acomoda sin saltos. Rápido pero suave: parte rápido y frena al final.
+   Lo mismo para la lista de resultados de la búsqueda (0,5 s).
    La ventana, además, sube desde la barra con un fundido (y baja al cerrar);
    las opciones del acordeón aparecen con un fundido. */
-:root { --despliegue: .32s cubic-bezier(.22, .8, .24, 1); }
+:root { --despliegue: .5s cubic-bezier(.22, .8, .24, 1); }
 .despliegue {
   display: grid;
   grid-template-rows: 0fr;
@@ -339,7 +340,7 @@ html.plano main .bg-white:not(input):not(select):not(textarea):not(button) {
 .despliegue .tarjeta-sube {
   transform: translateY(32px) scale(.985);
   opacity: 0;
-  transition: transform var(--despliegue), opacity .24s ease;
+  transition: transform var(--despliegue), opacity .36s ease;
   will-change: transform, opacity; /* capa lista de antes: sin tirón al abrir */
 }
 .despliegue.abierto .tarjeta-sube { transform: none; opacity: 1; }
@@ -353,20 +354,20 @@ html.plano main .bg-white:not(input):not(select):not(textarea):not(button) {
    la barra (hacia abajo en el inicio, hacia arriba con la conversación) con
    un fundido, y al cerrarse se recoge hacia la barra desde el alto que tenga
    en ese momento (--alto-salida). */
-.lista-resultados { animation: lista-entra-abajo .26s cubic-bezier(.22, .8, .24, 1); }
-.lista-resultados.hacia-arriba { animation-name: lista-entra-arriba; }
-.lista-resultados.saliendo { animation: lista-sale .2s cubic-bezier(.4, 0, .6, 1) forwards; pointer-events: none; }
+.lista-resultados { animation: lista-entra-abajo var(--despliegue); }
+.lista-resultados.hacia-arriba { animation-name: lista-entra-arriba; --hacia-barra: 32px; }
+.lista-resultados.saliendo { animation: lista-sale var(--despliegue) forwards; pointer-events: none; }
 @keyframes lista-entra-abajo {
-  from { clip-path: inset(0 0 100% 0); opacity: 0; transform: translateY(-6px); }
+  from { clip-path: inset(0 0 100% 0); opacity: 0; transform: translateY(-32px); }
   to { clip-path: inset(0); opacity: 1; transform: none; }
 }
 @keyframes lista-entra-arriba {
-  from { clip-path: inset(100% 0 0 0); opacity: 0; transform: translateY(6px); }
+  from { clip-path: inset(100% 0 0 0); opacity: 0; transform: translateY(32px); }
   to { clip-path: inset(0); opacity: 1; transform: none; }
 }
 @keyframes lista-sale {
   from { max-height: var(--alto-salida); }
-  to { max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; }
+  to { max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; transform: translateY(var(--hacia-barra, -32px)); }
 }
 @media (prefers-reduced-motion: reduce) {
   .lista-resultados, .lista-resultados.saliendo { animation: none; }
