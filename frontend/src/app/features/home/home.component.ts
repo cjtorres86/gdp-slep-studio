@@ -219,9 +219,36 @@ export class HomeComponent implements OnInit, OnDestroy {
   private ajustePendiente = 0;
 
   // Recalcula cuando cambia lo que se muestra (resultados, apertura, estado).
+  // ---------- Entrada y salida suaves de la lista de resultados ----------
+  // Aparece desplegándose desde la barra; al cerrarse se recoge hacia ella.
+  // Mientras sale (SALIDA_LISTA_MS) sigue mostrando los mismos resultados,
+  // aunque la consulta ya se haya borrado.
+  readonly listaVisible = computed(() => this.menuResultados() && !!this.consulta().trim());
+  readonly listaSaliendo = signal(false);
+  private readonly congelados = signal<Resultado[]>([]);
+  readonly altoSalida = signal(0); // alto real al empezar a salir (desde ahí se recoge)
+  readonly resultadosLista = computed(() => (this.listaVisible() ? this.resultados() : this.congelados()));
+  private static readonly SALIDA_LISTA_MS = 200;
+  private finSalida: ReturnType<typeof setTimeout> | null = null;
+  private listaEstabaVisible = false;
+  private readonly seguirLista = effect(() => {
+    const visible = this.listaVisible();
+    if (visible) {
+      this.congelados.set(this.resultados());
+      if (this.finSalida) clearTimeout(this.finSalida);
+      this.listaSaliendo.set(false);
+    } else if (this.listaEstabaVisible && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      this.altoSalida.set(this.listaResultados()?.nativeElement.offsetHeight ?? 0);
+      this.listaSaliendo.set(true);
+      this.finSalida = setTimeout(() => this.listaSaliendo.set(false), HomeComponent.SALIDA_LISTA_MS);
+    }
+    this.listaEstabaVisible = visible;
+  });
+
   private readonly recalcular = effect(() => {
     this.resultados();
     this.menuResultados();
+    this.listaSaliendo();
     this.iniciada();
     this.programarAjuste();
   });
@@ -236,7 +263,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   // Mide con offsetTop/offsetHeight, que NO incluyen el transform aplicado:
   // así el cálculo es estable aunque el bloque esté a mitad de la animación.
   private ajustarPosicion(): void {
-    const lista = this.listaResultados()?.nativeElement;
+    const lista = this.listaVisible() ? this.listaResultados()?.nativeElement : undefined;
     const seccion = this.seccion()?.nativeElement;
     const bloque = this.bloqueBusqueda()?.nativeElement;
     const barra = this.cajaBarra()?.nativeElement;

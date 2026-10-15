@@ -184,7 +184,7 @@
           </div></div>
         </div>
         <div #cajaBarra class="relative">
-        @if (menuResultados() && consulta().trim()) {
+        @if (listaVisible() || listaSaliendo()) {
           <!-- Resultados:
                - Estado inicial: hacia ABAJO, flotando (alto limitado al espacio
                  disponible; el saludo y la barra suben si hace falta).
@@ -197,14 +197,17 @@
             #listaResultados
             id="resultados-asistente"
             role="listbox"
-            class="panel-vidrio left-0 right-0 z-30 flex overflow-y-auto py-1"
+            class="lista-resultados panel-vidrio left-0 right-0 z-30 flex overflow-y-auto py-1"
+            [class.saliendo]="!listaVisible()"
+            [class.hacia-arriba]="!listaAbajo()"
+            [style.--alto-salida.px]="altoSalida()"
             [ngClass]="listaAbajo() ? 'absolute top-full mt-1.5 flex-col' : 'relative mb-1.5 flex-col-reverse'"
             [style.max-height.px]="altoLista()"
             style="background: rgb(255 255 255 / 0.9); scrollbar-gutter: stable"
           >
             <!-- scrollbar-gutter: el ancho no cambia cuando aparece el scroll (si
                  cambiara, el texto se reacomoda y el alto medido deja de ser exacto). -->
-            @for (r of resultados(); track r.id; let k = $index) {
+            @for (r of resultadosLista(); track r.id; let k = $index) {
               <li role="option" [id]="'res-' + r.id" [attr.aria-selected]="k === indiceActivo()" class="border-t border-dep-navy/[0.07] last:border-t-0">
                 <button
                   type="button"

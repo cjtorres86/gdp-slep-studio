@@ -348,3 +348,26 @@ html.plano main .bg-white:not(input):not(select):not(textarea):not(button) {
 @media (prefers-reduced-motion: reduce) {
   .despliegue, .despliegue .tarjeta-sube, .despliegue > * > ul { transition: none; }
 }
+
+/* Lista de resultados de la búsqueda: aparece revelándose desde el borde de
+   la barra (hacia abajo en el inicio, hacia arriba con la conversación) con
+   un fundido, y al cerrarse se recoge hacia la barra desde el alto que tenga
+   en ese momento (--alto-salida). */
+.lista-resultados { animation: lista-entra-abajo .26s cubic-bezier(.22, .8, .24, 1); }
+.lista-resultados.hacia-arriba { animation-name: lista-entra-arriba; }
+.lista-resultados.saliendo { animation: lista-sale .2s cubic-bezier(.4, 0, .6, 1) forwards; pointer-events: none; }
+@keyframes lista-entra-abajo {
+  from { clip-path: inset(0 0 100% 0); opacity: 0; transform: translateY(-6px); }
+  to { clip-path: inset(0); opacity: 1; transform: none; }
+}
+@keyframes lista-entra-arriba {
+  from { clip-path: inset(100% 0 0 0); opacity: 0; transform: translateY(6px); }
+  to { clip-path: inset(0); opacity: 1; transform: none; }
+}
+@keyframes lista-sale {
+  from { max-height: var(--alto-salida); }
+  to { max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lista-resultados, .lista-resultados.saliendo { animation: none; }
+}
