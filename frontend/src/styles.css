@@ -321,3 +321,30 @@ html.plano main .bg-white:not(input):not(select):not(textarea):not(button) {
   transition: translate var(--rebote), transform var(--rebote), background-color .3s ease, color .3s ease;
 }
 @media (prefers-reduced-motion: reduce) { [role='switch'] > span { transition: none; } }
+
+/* Despliegue suave (ventana de Aplicaciones y acordeón de sus módulos): el
+   alto pasa de 0 a su tamaño natural (filas 0fr → 1fr; el margen interior va
+   en un elemento de adentro, para que cerrado mida 0), así lo de alrededor
+   se acomoda sin saltos. Rápido pero suave: parte rápido y frena al final.
+   La ventana, además, sube desde la barra con un fundido (y baja al cerrar);
+   las opciones del acordeón aparecen con un fundido. */
+:root { --despliegue: .32s cubic-bezier(.22, .8, .24, 1); }
+.despliegue {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--despliegue);
+}
+.despliegue.abierto { grid-template-rows: 1fr; }
+.despliegue > * { min-height: 0; overflow: hidden; }
+.despliegue .tarjeta-sube {
+  transform: translateY(32px) scale(.985);
+  opacity: 0;
+  transition: transform var(--despliegue), opacity .24s ease;
+  will-change: transform, opacity; /* capa lista de antes: sin tirón al abrir */
+}
+.despliegue.abierto .tarjeta-sube { transform: none; opacity: 1; }
+.despliegue > * > ul { opacity: 0; transition: opacity .22s ease; }
+.despliegue.abierto > * > ul { opacity: 1; transition: opacity .3s ease .06s; }
+@media (prefers-reduced-motion: reduce) {
+  .despliegue, .despliegue .tarjeta-sube, .despliegue > * > ul { transition: none; }
+}

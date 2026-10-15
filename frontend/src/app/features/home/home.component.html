@@ -40,11 +40,14 @@
         [style.transform]="desplazamiento() ? 'translateY(-' + desplazamiento() + 'px)' : null"
         data-busqueda
       >
-        <!-- Aplicaciones (botón de la barra): los módulos en un panel horizontal
-             entre el saludo y la barra (el saludo sube y la barra baja, como con
-             los resultados). Se cierra con el botón, con Esc o al escribir. -->
-        @if (appsAbierto()) {
-          <div id="panel-aplicaciones" class="vidrio relative mb-2 max-h-[calc(100dvh-440px)] min-h-[160px] overflow-y-auto overscroll-contain rounded-3xl p-3 sm:max-h-[calc(100dvh-330px)] sm:p-4" role="region" aria-label="Aplicaciones del portal">
+        <!-- Aplicaciones (botón junto a la barra): los módulos en un panel horizontal
+             entre el saludo y la barra. Siempre está en la página: al abrirse,
+             su alto se despliega (el saludo sube suave) y la tarjeta sube desde
+             la barra con un fundido; al cerrarse, baja igual. Se cierra con el
+             botón, con Esc o al escribir. -->
+        <div class="despliegue" [class.abierto]="appsAbierto()" [attr.inert]="appsAbierto() ? null : ''" [attr.aria-hidden]="appsAbierto() ? null : 'true'">
+          <div><div class="pb-2">
+          <div id="panel-aplicaciones" class="tarjeta-sube vidrio relative max-h-[calc(100dvh-440px)] min-h-[160px] overflow-y-auto overscroll-contain rounded-3xl p-3 sm:max-h-[calc(100dvh-330px)] sm:p-4" role="region" aria-label="Aplicaciones del portal">
             <!-- Vidrio extremo: manchas de los colores de la marca detrás del contenido. -->
             <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
               <div class="absolute -left-10 -top-16 size-64 rounded-full bg-[#1f84ec]/25 blur-3xl"></div>
@@ -89,8 +92,8 @@
                     <svg class="size-4 text-slate-500 transition" [class.rotate-180]="abiertas().has(m.id)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
                   </button>
                 </h2>
-                @if (abiertas().has(m.id)) {
-                  <ul [id]="'sec-' + m.id" class="flex flex-col px-4 pb-3">
+                <div class="despliegue" [class.abierto]="abiertas().has(m.id)" [attr.inert]="abiertas().has(m.id) ? null : ''">
+                  <div><ul [id]="'sec-' + m.id" class="flex flex-col px-4 pb-3">
                     @for (a of m.aplicaciones; track a.id) {
                       <li class="border-b border-dep-navy/[0.07] last:border-b-0">
                         @if (a.estado !== 'activa') {
@@ -136,8 +139,8 @@
                         }
                       </li>
                     }
-                  </ul>
-                }
+                  </ul></div>
+                </div>
               </section>
             }
             @for (a of atajos(); track a.id) {
@@ -178,7 +181,8 @@
           }
         }
           </div>
-        }
+          </div></div>
+        </div>
         <div #cajaBarra class="relative">
         @if (menuResultados() && consulta().trim()) {
           <!-- Resultados:
