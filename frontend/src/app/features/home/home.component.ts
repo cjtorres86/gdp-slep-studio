@@ -72,7 +72,7 @@ const COLOR_FORMATO: Record<InformeVista['formato'], string> = { xlsx: '#2F7D4E'
 // Pantalla de inicio con forma de asistente (sin IA detrás): la persona
 // escribe qué necesita y el portal le ofrece aplicaciones e informes; si un
 // informe necesita datos (mes, SLEP), el asistente se los pregunta. Las
-// aplicaciones están siempre a mano en la barra lateral izquierda. Todo viene
+// aplicaciones están a mano en el botón «Aplicaciones» de la barra. Todo viene
 // del servidor: todo se muestra a todos, y el servidor dice qué puede abrir
 // cada persona.
 @Component({
@@ -276,10 +276,19 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.saludoFijo.set(!!c && !this.listaAbajo() && this.menuResultados() && !!this.consulta().trim() && c.scrollTop > 1);
   }
 
-  // ---------- Barra lateral en pantallas angostas (menú desplegable) ----------
-  readonly menuMovil = signal(false);
+  // ---------- Panel de Aplicaciones (botón de la barra de búsqueda) ----------
+  // Los módulos en horizontal, entre el saludo y la barra. Se cierra con el
+  // mismo botón, con Esc o al escribir (los resultados toman su lugar).
+  readonly appsAbierto = signal(false);
+  private readonly botonApps = viewChild<ElementRef<HTMLButtonElement>>('botonApps');
 
-  // ---------- Acordeón de la barra lateral: varias secciones abiertas a la vez,
+  alternarApps(): void {
+    const abrir = !this.appsAbierto();
+    this.appsAbierto.set(abrir);
+    if (abrir) this.menuResultados.set(false);
+  }
+
+  // ---------- Acordeón de los módulos: varias secciones abiertas a la vez,
   // todas cerradas al entrar la primera vez; se recuerda en este navegador. ----------
   readonly abiertas = signal<Set<string>>(this.leerAcordeon());
 
@@ -359,6 +368,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.consulta.set(valor);
     this.indiceActivo.set(0);
     this.menuResultados.set(!!valor.trim());
+    if (valor.trim()) this.appsAbierto.set(false);
   }
 
   // Dirección de la lista: hacia ABAJO en el estado inicial (barra al centro)
@@ -443,10 +453,10 @@ export class HomeComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Clic en la barra lateral: se abre al instante, como siempre. Si no puede
+  // Clic en el panel de Aplicaciones: se abre al instante, como siempre. Si no puede
   // entrar, el asistente se lo explica.
   entrar(e: MouseEvent, app: AplicacionVista): void {
-    this.menuMovil.set(false);
+    this.appsAbierto.set(false);
     if (!app.autorizado || !app.url) {
       e.preventDefault();
       if (app.estado === 'activa') this.responder(null, 'sin_autorizacion', app.id, false);
@@ -795,12 +805,10 @@ export class HomeComponent implements OnInit, OnDestroy {
   // ---------- Marco legal ----------
   // Configuración → Vista desde el panel izquierdo: la misma ventana de la barra superior.
   abrirVista(e: Event): void {
-    this.menuMovil.set(false);
     this.panelConfig.abrir(e.currentTarget as HTMLElement);
   }
 
   abrirMarco(e: Event): void {
-    this.menuMovil.set(false);
     this.disparadorMarco = e.currentTarget as HTMLElement;
     this.marcoAbierto.set(true);
     setTimeout(() => this.ventanaMarco()?.nativeElement.querySelector<HTMLElement>('[data-cerrar]')?.focus());
@@ -814,7 +822,13 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   @HostListener('document:keydown', ['$event'])
   alPresionarTecla(e: KeyboardEvent): void {
-    if (!this.marcoAbierto()) return;
+    if (!this.marcoAbierto()) {
+      if (e.key === 'Escape' && this.appsAbierto()) {
+        this.appsAbierto.set(false);
+        this.botonApps()?.nativeElement.focus();
+      }
+      return;
+    }
     if (e.key === 'Escape') this.cerrarMarco();
     else atraparTab(e, this.ventanaMarco()?.nativeElement);
   }

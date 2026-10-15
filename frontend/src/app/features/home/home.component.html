@@ -1,27 +1,50 @@
-  <!-- En celular: menú de aplicaciones arriba y el asistente en el resto del alto. -->
-  <main class="grid min-h-0 w-full flex-1 grid-rows-[auto_minmax(0,1fr)] lg:grid-cols-[300px_minmax(0,1fr)] lg:grid-rows-1">
+  <main class="flex min-h-0 w-full flex-1 flex-col">
+    <!-- Centro: el asistente, sin tarjetas. Al entrar, el saludo y la barra van
+         al medio; con la primera consulta la barra baja y la conversación sube. -->
+    <!-- relative: es la referencia de las medidas (offsetTop) del ajuste de la lista. -->
+    <section #seccion class="relative mx-auto flex min-h-0 w-full max-w-[1180px] flex-1 flex-col px-4 sm:px-6 lg:px-12" aria-labelledby="titulo-asistente">
+      @if (!iniciada()) { <div class="min-h-6 flex-1" aria-hidden="true"></div> }
 
-    <!-- Aplicaciones: barra lateral izquierda en forma de acordeón (solo para
-         entrar a las aplicaciones). En pantallas angostas va arriba, como menú
-         desplegable. -->
-    <aside class="panel-vidrio flex min-h-0 flex-col border-y-0 border-l-0 lg:overflow-y-auto" aria-label="Aplicaciones del portal">
-      <button
-        type="button"
-        (click)="menuMovil.set(!menuMovil())"
-        [attr.aria-expanded]="menuMovil()"
-        aria-controls="panel-aplicaciones"
-        class="flex w-full items-center justify-between px-5 py-3.5 text-[13px] font-bold text-dep-navy lg:hidden cursor-pointer"
+      <!-- Conversación flotante (sin contenedor): saludo arriba a la izquierda y burbujas. -->
+      <!-- En el estado inicial, el saludo y la barra suben juntos (translateY) lo
+           justo para que la lista de resultados quepa abajo. -->
+      <div
+        #conversacion
+        class="flex min-h-0 flex-col gap-3 overflow-y-auto pt-8 transition-transform duration-200 ease-out motion-reduce:transition-none"
+        [class.flex-1]="iniciada()"
+        [style.transform]="desplazamiento() ? 'translateY(-' + desplazamiento() + 'px)' : null"
+        (scroll)="alDesplazarConversacion()"
+        role="log"
+        aria-live="polite"
+        aria-label="Conversación con el asistente"
       >
-        <span class="flex items-center gap-2">
-          <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6" height="6" /><rect x="14" y="4" width="6" height="6" /><rect x="4" y="14" width="6" height="6" /><rect x="14" y="14" width="6" height="6" /></svg>
-          Aplicaciones
-        </span>
-        <svg class="size-4 transition" [class.rotate-180]="menuMovil()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
-      </button>
+        <div class="pb-2" [class.saludo-fijo]="saludoFijo()">
+          <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-dep-blue">Asistente Virtual</p>
+          <h1 id="titulo-asistente" class="mt-1 font-display font-extrabold leading-tight tracking-tight text-dep-navy" [ngClass]="iniciada() ? 'text-[26px]' : 'text-[34px]'">Hola, {{ nombre }}</h1>
+          <p class="mt-1 text-[14px] text-slate-600">Escribe lo que necesitas: te llevo a la aplicación o te preparo el informe.</p>
+        </div>
+        @for (i of visibles(); track i.id) {
+          @if (i.pregunta) {
+            <div class="flex justify-end">
+              <p class="max-w-[80%] bg-dep-navy px-4 py-2 text-[13.5px] text-white">{{ i.pregunta }}</p>
+            </div>
+          }
+          @if (i.texto) { <ng-container *ngTemplateOutlet="burbuja; context: { $implicit: i }" /> }
+        }
+      </div>
 
-      <div id="panel-aplicaciones" class="max-h-[60vh] flex-col overflow-y-auto lg:flex lg:max-h-none lg:flex-1 lg:overflow-visible" [class.hidden]="!menuMovil()" [class.flex]="menuMovil()">
-        <p class="hidden px-6 pb-3 pt-6 text-[11px] font-bold uppercase tracking-[0.16em] text-dep-blue lg:block">Aplicaciones</p>
-        <div class="linea-desvanecida" aria-hidden="true"></div>
+      <!-- Barra de búsqueda tipo "prompt" (abajo una vez iniciada la conversación). -->
+      <div
+        #bloqueBusqueda
+        class="relative z-20 shrink-0 pb-6 pt-4 transition-transform duration-200 ease-out motion-reduce:transition-none"
+        [style.transform]="desplazamiento() ? 'translateY(-' + desplazamiento() + 'px)' : null"
+        data-busqueda
+      >
+        <!-- Aplicaciones (botón de la barra): los módulos en un panel horizontal
+             entre el saludo y la barra (el saludo sube y la barra baja, como con
+             los resultados). Se cierra con el botón, con Esc o al escribir. -->
+        @if (appsAbierto()) {
+          <div id="panel-aplicaciones" class="panel-vidrio mb-1.5 max-h-[calc(100dvh-440px)] min-h-[160px] overflow-y-auto sm:max-h-[calc(100dvh-330px)]" style="background: rgb(255 255 255 / 0.9)" role="region" aria-label="Aplicaciones del portal">
         @switch (estado()) {
           @case ('cargando') {
             <div class="flex flex-col gap-2 p-5" aria-busy="true" aria-label="Cargando tus aplicaciones">
@@ -35,8 +58,10 @@
             </div>
           }
           @case ('listo') {
+            <!-- Los módulos lado a lado; cada uno abre sus aplicaciones hacia abajo. -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             @for (m of modulos(); track m.id) {
-              <section class="border-b border-dashed border-dep-navy/15" [attr.aria-labelledby]="'lat-' + m.id">
+              <section class="border-b border-dashed border-dep-navy/15 sm:border-r lg:border-b-0 lg:last:border-r-0" [attr.aria-labelledby]="'lat-' + m.id">
                 <!-- Título de la sección: abre y cierra (pueden quedar varias abiertas). -->
                 <h2 class="m-0">
                   <button
@@ -119,69 +144,28 @@
                 }
               </section>
             }
+            </div>
 
-            <!-- Respaldo normativo: siempre al final de la columna. -->
-            <footer class="mt-auto px-5 py-4">
+            <!-- Respaldo normativo: al pie del panel, en una línea. -->
+            <footer class="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-dashed border-dep-navy/15 px-5 py-3">
               <p class="flex items-start gap-2 text-[11px] font-bold leading-snug text-dep-navy">
                 <svg class="mt-px size-4 shrink-0 text-[#1d9fd0]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v5c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6z" /><path d="m9 12 2 2 4-4" /></svg>
                 Marco normativo que exige registros y documentación de los sistemas
               </p>
-              <ul class="mt-2 flex flex-wrap gap-1.5" aria-label="Normas que respaldan el portal">
+              <ul class="flex flex-wrap gap-1.5" aria-label="Normas que respaldan el portal">
                 @for (n of ['Ley 21.180', 'DS 7, 10 y 11/2023', 'Ley 21.663']; track n) {
                   <li class="border border-[#3abff0]/40 bg-[#eefaff]/70 px-1.5 py-px text-[10px] font-bold text-[#0a6d93]">{{ n }}</li>
                 }
               </ul>
-              <button type="button" (click)="abrirMarco($event)" aria-haspopup="dialog" class="mt-2 inline-flex items-center gap-1 text-[12px] font-bold text-dep-blue underline-offset-2 hover:underline cursor-pointer">
+              <button type="button" (click)="abrirMarco($event)" aria-haspopup="dialog" class="inline-flex items-center gap-1 text-[12px] font-bold text-dep-blue underline-offset-2 hover:underline cursor-pointer">
                 Ver marco legal
                 <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
               </button>
             </footer>
           }
         }
-      </div>
-    </aside>
-
-    <!-- Centro: el asistente, sin tarjetas. Al entrar, el saludo y la barra van
-         al medio; con la primera consulta la barra baja y la conversación sube. -->
-    <!-- relative: es la referencia de las medidas (offsetTop) del ajuste de la lista. -->
-    <section #seccion class="relative flex min-h-0 min-w-0 flex-col px-4 sm:px-6 lg:px-12" aria-labelledby="titulo-asistente">
-      @if (!iniciada()) { <div class="min-h-6 flex-1" aria-hidden="true"></div> }
-
-      <!-- Conversación flotante (sin contenedor): saludo arriba a la izquierda y burbujas. -->
-      <!-- En el estado inicial, el saludo y la barra suben juntos (translateY) lo
-           justo para que la lista de resultados quepa abajo. -->
-      <div
-        #conversacion
-        class="flex min-h-0 flex-col gap-3 overflow-y-auto pt-8 transition-transform duration-200 ease-out motion-reduce:transition-none"
-        [class.flex-1]="iniciada()"
-        [style.transform]="desplazamiento() ? 'translateY(-' + desplazamiento() + 'px)' : null"
-        (scroll)="alDesplazarConversacion()"
-        role="log"
-        aria-live="polite"
-        aria-label="Conversación con el asistente"
-      >
-        <div class="pb-2" [class.saludo-fijo]="saludoFijo()">
-          <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-dep-blue">Asistente Virtual</p>
-          <h1 id="titulo-asistente" class="mt-1 font-display font-extrabold leading-tight tracking-tight text-dep-navy" [ngClass]="iniciada() ? 'text-[26px]' : 'text-[34px]'">Hola, {{ nombre }}</h1>
-          <p class="mt-1 text-[14px] text-slate-600">Escribe lo que necesitas: te llevo a la aplicación o te preparo el informe.</p>
-        </div>
-        @for (i of visibles(); track i.id) {
-          @if (i.pregunta) {
-            <div class="flex justify-end">
-              <p class="max-w-[80%] bg-dep-navy px-4 py-2 text-[13.5px] text-white">{{ i.pregunta }}</p>
-            </div>
-          }
-          @if (i.texto) { <ng-container *ngTemplateOutlet="burbuja; context: { $implicit: i }" /> }
+          </div>
         }
-      </div>
-
-      <!-- Barra de búsqueda tipo "prompt" (abajo una vez iniciada la conversación). -->
-      <div
-        #bloqueBusqueda
-        class="relative z-20 shrink-0 pb-6 pt-4 transition-transform duration-200 ease-out motion-reduce:transition-none"
-        [style.transform]="desplazamiento() ? 'translateY(-' + desplazamiento() + 'px)' : null"
-        data-busqueda
-      >
         <div #cajaBarra class="relative">
         @if (menuResultados() && consulta().trim()) {
           <!-- Resultados:
@@ -274,6 +258,19 @@
             class="min-w-0 flex-1 bg-transparent text-[15px] text-dep-navy placeholder:text-slate-400 disabled:cursor-not-allowed"
             style="outline: none"
           />
+          <button
+            type="button"
+            #botonApps
+            (click)="alternarApps()"
+            [attr.aria-expanded]="appsAbierto()"
+            aria-controls="panel-aplicaciones"
+            title="Ver todas las aplicaciones del portal"
+            class="flex h-9 shrink-0 items-center gap-2 border px-3 text-[12.5px] font-bold transition cursor-pointer"
+            [ngClass]="appsAbierto() ? 'border-dep-navy bg-dep-navy text-white' : 'border-dep-navy/25 text-dep-navy hover:border-dep-blue hover:text-dep-blue'"
+          >
+            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6" height="6" /><rect x="14" y="4" width="6" height="6" /><rect x="4" y="14" width="6" height="6" /><rect x="14" y="14" width="6" height="6" /></svg>
+            <span class="sr-only sm:not-sr-only">Aplicaciones</span>
+          </button>
           <button
             type="button"
             (click)="buscar()"
