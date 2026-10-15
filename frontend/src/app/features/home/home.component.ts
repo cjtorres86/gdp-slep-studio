@@ -8,6 +8,8 @@ import { Component, ElementRef, HostListener, OnDestroy, OnInit, computed, effec
 import { AuthService } from '../../core/auth.service';
 import { CatalogoService } from '../../core/catalogo.service';
 import { PanelConfigService } from '../../core/panel-config.service';
+import { atraparTab } from '../../core/atrapar-tab';
+import { bloquearFondoMientras } from '../../core/bloquear-fondo';
 
 // Tiempo que se muestra "Construyendo…" antes de abrir.
 const ESPERA_CONSTRUYENDO_MS = 1500;
@@ -36,6 +38,25 @@ interface Intercambio {
   // La persona eligió otra cosa en vez de responder esta pregunta.
   descartada?: boolean;
 }
+// Acceso directo de la persona (ventana Aplicaciones): una aplicación o un
+// informe del portal, o un enlace web. Se guarda en su cuenta (/auth/atajos).
+interface Atajo {
+  id: string;
+  nombre: string;
+  tipo: 'app' | 'informe' | 'enlace';
+  destino: string;
+}
+const TIPO_ATAJO: Record<Atajo['tipo'], string> = { app: 'Aplicación', informe: 'Informe', enlace: 'Enlace web' };
+// Formulario de la ventana del acceso directo (destino del portal: "app:id" o "informe:id").
+interface FormAtajo {
+  id: string | null;
+  modo: 'portal' | 'enlace';
+  destino: string;
+  url: string;
+  nombre: string;
+  error: string;
+}
+
 type Resultado =
   | { tipo: 'app'; id: string; nombre: string; descripcion: string; modulo: ModuloVista; app: AplicacionVista; puntaje: number }
   | { tipo: 'informe'; id: string; nombre: string; descripcion: string; modulo: ModuloVista; informe: InformeVista; aplicacion: string; puntaje: number }
@@ -294,11 +315,26 @@ export class HomeComponent implements OnInit, OnDestroy {
   // Documentación están en Opciones, en la barra superior) y, al final,
   // espacios para las próximas aplicaciones (hasta completar 4 columnas).
   readonly modulosApps = computed(() => this.modulos().filter((m) => m.id !== 'configuracion' && m.id !== 'documentacion'));
-  readonly espaciosLibres = computed(() => Array.from({ length: Math.max(1, 4 - this.modulosApps().length) }, (_, k) => k));
+  // Siempre queda al menos un «Próxima aplicación» libre (y se completa la fila de 4).
+  readonly espaciosLibres = computed(() => Array.from({ length: Math.max(1, 4 - this.modulosApps().length - this.atajos().length) }, (_, k) => k));
 
-  constructor(readonly auth: AuthService) {}
+  // ---------- Accesos directos (rectángulos de la ventana Aplicaciones) ----------
+  readonly TIPO_ATAJO = TIPO_ATAJO;
+  readonly atajos = signal<Atajo[]>([]);
+  readonly guardandoAtajos = signal(false);
+  readonly formAtajo = signal<FormAtajo | null>(null);
+  readonly appsParaAtajo = computed(() => this.modulos().flatMap((m) => m.aplicaciones));
+  private readonly ventanaAtajo = viewChild<ElementRef<HTMLElement>>('ventanaAtajo');
+  private disparadorAtajo: HTMLElement | null = null;
+
+  constructor(readonly auth: AuthService) {
+    bloquearFondoMientras(this.formAtajo);
+  }
 
   ngOnInit(): void {
+    // Accesos directos de la persona. Si no se pueden leer, la ventana muestra
+    // solo los espacios libres (el resto del inicio funciona igual).
+    this.http.get<Atajo[]>(`${environment.apiUrl}/auth/atajos`).subscribe({ next: (a) => this.atajos.set(a ?? []), error: () => this.atajos.set([]) });
     // Cada visita parte con la conversación vacía (barra al medio, como una
     // IA); el historial guardado se muestra solo si la persona lo pide.
     this.http.get<BusquedaHistorial[]>(`${environment.apiUrl}/portal/busquedas`).subscribe({
@@ -799,8 +835,116 @@ export class HomeComponent implements OnInit, OnDestroy {
     });
   }
 
+  nuevoAtajo(e: Event): void {
+    this.abrirFormAtajo(e, { id: null, modo: 'portal', destino: '', url: '', nombre: '', error: '' });
+  }
+
+  editarAtajo(a: Atajo, e: Event): void {
+    const portal = a.tipo !== 'enlace';
+    this.abrirFormAtajo(e, { id: a.id, modo: portal ? 'portal' : 'enlace', destino: portal ? `${a.tipo}:${a.destino}` : '', url: portal ? '' : a.destino, nombre: a.nombre, error: '' });
+  }
+
+  private abrirFormAtajo(e: Event, f: FormAtajo): void {
+    this.disparadorAtajo = e.currentTarget as HTMLElement;
+    this.formAtajo.set(f);
+    setTimeout(() => this.ventanaAtajo()?.nativeElement.querySelector<HTMLElement>(f.modo === 'portal' ? '#atajo-destino' : '#atajo-url')?.focus());
+  }
+
+  cerrarFormAtajo(): void {
+    if (!this.formAtajo()) return;
+    this.formAtajo.set(null);
+    setTimeout(() => this.disparadorAtajo?.isConnected ? this.disparadorAtajo.focus() : this.botonApps()?.nativeElement.focus());
+  }
+
+  cambiarModoAtajo(modo: FormAtajo['modo']): void {
+    this.formAtajo.update((f) => (f ? { ...f, modo, error: '' } : f));
+  }
+
+  // Al elegir del portal, el nombre se completa con el de lo elegido (si la
+  // persona no escribió otro).
+  elegirDestinoAtajo(valor: string): void {
+    const f = this.formAtajo();
+    if (!f) return;
+    const anterior = this.nombreDeDestino(f.destino);
+    const nombre = !f.nombre.trim() || f.nombre === anterior ? this.nombreDeDestino(valor) : f.nombre;
+    this.formAtajo.set({ ...f, destino: valor, nombre, error: '' });
+  }
+
+  private nombreDeDestino(valor: string): string {
+    const [tipo, id] = valor.split(':');
+    if (tipo === 'app') return this.appsParaAtajo().find((a) => a.id === id)?.nombre ?? '';
+    if (tipo === 'informe') return this.informes().find((i) => i.id === id)?.nombre ?? '';
+    return '';
+  }
+
+  guardarAtajo(): void {
+    const f = this.formAtajo();
+    if (!f || this.guardandoAtajos()) return;
+    const nombre = f.nombre.trim();
+    let tipo: Atajo['tipo'], destino: string;
+    if (f.modo === 'portal') {
+      const [t, id] = f.destino.split(':');
+      if (!id) return this.formAtajo.set({ ...f, error: 'Elige una aplicación o un informe.' });
+      tipo = t as Atajo['tipo'];
+      destino = id;
+    } else {
+      // «drive.google.com» → «https://drive.google.com».
+      let url = f.url.trim();
+      if (url && !/^[a-z]+:\/\//i.test(url)) url = `https://${url}`;
+      if (!/^https?:\/\/\S+\.\S+/.test(url)) return this.formAtajo.set({ ...f, error: 'Escribe una dirección web completa, por ejemplo https://drive.google.com' });
+      tipo = 'enlace';
+      destino = url;
+    }
+    if (!nombre) return this.formAtajo.set({ ...f, error: 'Escribe el nombre que verá el rectángulo.' });
+    const atajo: Atajo = { id: f.id ?? `a-${Date.now().toString(36)}`, nombre, tipo, destino };
+    const lista = f.id ? this.atajos().map((a) => (a.id === f.id ? atajo : a)) : [...this.atajos(), atajo];
+    this.enviarAtajos(lista);
+  }
+
+  quitarAtajo(): void {
+    const f = this.formAtajo();
+    if (f?.id) this.enviarAtajos(this.atajos().filter((a) => a.id !== f.id));
+  }
+
+  private enviarAtajos(lista: Atajo[]): void {
+    this.guardandoAtajos.set(true);
+    this.http.put<Atajo[]>(`${environment.apiUrl}/auth/atajos`, { atajos: lista }).subscribe({
+      next: (guardados) => {
+        this.guardandoAtajos.set(false);
+        this.atajos.set(guardados);
+        this.cerrarFormAtajo();
+      },
+      error: () => {
+        this.guardandoAtajos.set(false);
+        this.formAtajo.update((f) => (f ? { ...f, error: 'No se pudo guardar el acceso directo. Espera un momento y vuelve a intentarlo.' } : f));
+      },
+    });
+  }
+
+  // Abre lo que apunta el acceso directo, igual que si se eligiera en la búsqueda.
+  abrirAtajo(a: Atajo): void {
+    this.appsAbierto.set(false);
+    if (a.tipo === 'enlace') {
+      window.open(a.destino, '_blank', 'noopener');
+      return;
+    }
+    if (a.tipo === 'app') {
+      const app = this.appsParaAtajo().find((x) => x.id === a.destino);
+      if (app) return this.elegirAplicacion(app);
+    } else {
+      const informe = this.informes().find((x) => x.id === a.destino);
+      if (informe) return this.elegirInforme(informe);
+    }
+    this.agregar({ pregunta: a.nombre, tipo: 'sin_resultados', aplicacionId: null, texto: `El acceso directo «${a.nombre}» apunta a algo que ya no está en el portal. Puedes editarlo o quitarlo con el lápiz de su rectángulo.` });
+  }
+
   @HostListener('document:keydown', ['$event'])
   alPresionarTecla(e: KeyboardEvent): void {
+    if (this.formAtajo()) {
+      if (e.key === 'Escape') this.cerrarFormAtajo();
+      else atraparTab(e, this.ventanaAtajo()?.nativeElement);
+      return;
+    }
     // Con una ventana de la barra superior abierta, Esc es de esa ventana.
     if (this.panelConfig.abierto() || this.panelConfig.marcoAbierto()) return;
     if (e.key === 'Escape' && this.appsAbierto()) {

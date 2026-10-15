@@ -65,9 +65,11 @@
             </div>
           }
           @case ('listo') {
-            <!-- Los módulos lado a lado (Configuración y Documentación están en
-                 Opciones, en la barra superior); cada uno abre sus aplicaciones
-                 hacia abajo. Al final, espacios para las próximas aplicaciones. -->
+            <!-- Rectángulos del mismo tamaño (alto ALTO_TARJETA), lado a lado:
+                 los módulos (Configuración y Documentación están en Opciones),
+                 los accesos directos de la persona y siempre al menos un
+                 «Próxima aplicación» libre para crear otro. Un módulo abre sus
+                 aplicaciones hacia abajo, sin cambiar el tamaño de los demás. -->
             <div class="relative grid grid-cols-1 items-start gap-3 sm:grid-cols-2 lg:grid-cols-4">
             @for (m of modulosApps(); track m.id) {
               <section class="opcion-vidrio rounded-2xl" [attr.aria-labelledby]="'lat-' + m.id">
@@ -79,7 +81,7 @@
                     (click)="alternarSeccion(m.id)"
                     [attr.aria-expanded]="abiertas().has(m.id)"
                     [attr.aria-controls]="'sec-' + m.id"
-                    class="flex w-full items-center gap-2.5 rounded-2xl px-4 py-3.5 text-left transition hover:bg-white/50 cursor-pointer"
+                    class="flex h-[66px] w-full items-center gap-2.5 rounded-2xl px-4 text-left transition hover:bg-white/50 cursor-pointer"
                   >
                     <ng-container *ngTemplateOutlet="icono; context: { $implicit: m.icono, color: m.color, chico: true }" />
                     <span class="flex-1 font-display text-[11.5px] font-extrabold uppercase tracking-[0.08em] text-dep-navy">{{ m.nombre }}</span>
@@ -138,14 +140,38 @@
                 }
               </section>
             }
+            @for (a of atajos(); track a.id) {
+              <div class="opcion-vidrio group relative flex h-[68px] items-center rounded-2xl">
+                <button type="button" (click)="abrirAtajo(a)" class="flex h-full min-w-0 flex-1 items-center gap-2.5 rounded-2xl pl-4 pr-10 text-left transition hover:bg-white/50 cursor-pointer" [title]="'Abrir ' + a.nombre">
+                  <span class="grid size-8 shrink-0 place-items-center bg-dep-navy text-white" aria-hidden="true">
+                    @if (a.tipo === 'enlace') {
+                      <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" /><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" /></svg>
+                    } @else if (a.tipo === 'informe') {
+                      <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h7l4 4V20.5H7z" /><path d="M14 3.5v4h4M9.5 12h6M9.5 15.5h6" /></svg>
+                    } @else {
+                      <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="6" height="6" /><rect x="14" y="4" width="6" height="6" /><rect x="4" y="14" width="6" height="6" /><rect x="14" y="14" width="6" height="6" /></svg>
+                    }
+                  </span>
+                  <span class="min-w-0 flex-1">
+                    <span class="line-clamp-2 font-display text-[11.5px] font-extrabold uppercase leading-tight tracking-[0.06em] text-dep-navy" [title]="a.nombre">{{ a.nombre }}</span>
+                    <span class="block truncate text-[10.5px] font-bold text-slate-400">Acceso directo · {{ TIPO_ATAJO[a.tipo] }}</span>
+                  </span>
+                </button>
+                <button type="button" (click)="editarAtajo(a, $event)" class="absolute right-2 grid size-7 place-items-center text-slate-400 transition hover:bg-white/70 hover:text-dep-navy cursor-pointer" [attr.aria-label]="'Editar el acceso directo ' + a.nombre" title="Editar o quitar">
+                  <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z" /><path d="m13.5 6.5 4 4" /></svg>
+                </button>
+              </div>
+            }
             @for (k of espaciosLibres(); track k) {
-              <div class="flex min-h-[132px] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-white/80 bg-white/25 px-4 py-5 text-center" aria-label="Espacio para una próxima aplicación">
-                <span class="grid size-9 place-items-center rounded-full border-2 border-dashed border-dep-navy/25 text-dep-navy/50" aria-hidden="true">
+              <button type="button" (click)="nuevoAtajo($event)" class="flex h-[68px] items-center gap-3 rounded-2xl border-2 border-dashed border-white/80 bg-white/25 px-4 text-left transition hover:border-dep-blue/40 hover:bg-white/45 cursor-pointer" title="Crear un acceso directo a una aplicación, un informe o un enlace web">
+                <span class="grid size-8 shrink-0 place-items-center rounded-full border-2 border-dashed border-dep-navy/25 text-dep-navy/50" aria-hidden="true">
                   <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
                 </span>
-                <span class="font-display text-[11.5px] font-extrabold uppercase tracking-[0.08em] text-dep-navy/60">Próxima aplicación</span>
-                <span class="max-w-[220px] text-[11.5px] leading-snug text-slate-500">Espacio disponible para sumar una nueva aplicación al portal.</span>
-              </div>
+                <span class="min-w-0">
+                  <span class="block font-display text-[11.5px] font-extrabold uppercase tracking-[0.08em] text-dep-navy/60">Próxima aplicación</span>
+                  <span class="block text-[10.5px] font-bold text-slate-400">Crea tu acceso directo</span>
+                </span>
+              </button>
             }
             </div>
 
@@ -294,6 +320,73 @@
       @if (!iniciada()) { <div class="flex-[1.4]" aria-hidden="true"></div> }
     </section>
   </main>
+
+  <!-- Acceso directo (rectángulo «Próxima aplicación» o el lápiz de uno creado):
+       una aplicación o un informe del portal, o un enlace web. Se guarda en la
+       cuenta de la persona. -->
+  @if (formAtajo(); as f) {
+    <div class="fixed inset-0 z-50 grid place-items-center p-4" (click)="cerrarFormAtajo()">
+      <div class="absolute inset-0 bg-[#25306B]/25 backdrop-blur-[6px]" aria-hidden="true"></div>
+      <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+        <div class="absolute left-[20%] top-[20%] size-72 rounded-full bg-[#1f84ec]/35 blur-3xl"></div>
+        <div class="absolute bottom-[20%] right-[22%] size-72 rounded-full bg-[#3abff0]/35 blur-3xl"></div>
+        <div class="absolute bottom-[34%] left-[40%] size-56 rounded-full bg-[#90d039]/20 blur-3xl"></div>
+      </div>
+      <section #ventanaAtajo role="dialog" aria-modal="true" aria-labelledby="titulo-atajo" (click)="$event.stopPropagation()"
+        class="vidrio relative max-h-[calc(100dvh-2rem)] w-full max-w-[520px] overflow-y-auto overscroll-contain rounded-3xl p-6 sm:p-7">
+        <header class="flex items-start justify-between gap-4">
+          <div>
+            <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-dep-blue">Aplicaciones</p>
+            <h2 id="titulo-atajo" class="mt-1 font-display text-[22px] font-extrabold tracking-tight text-dep-navy">{{ f.id ? 'Editar acceso directo' : 'Nuevo acceso directo' }}</h2>
+            <p class="mt-1 text-[13px] text-slate-600">Un rectángulo en tu ventana de Aplicaciones que abre lo que más usas. Se guarda en tu cuenta.</p>
+          </div>
+          <button data-cerrar type="button" (click)="cerrarFormAtajo()" aria-label="Cerrar" class="grid size-9 shrink-0 place-items-center rounded-full border border-white/70 bg-white/50 text-dep-navy transition hover:bg-white cursor-pointer">
+            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+          </button>
+        </header>
+
+        <div class="mt-5 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Qué abre el acceso directo">
+          <button type="button" role="radio" [attr.aria-checked]="f.modo === 'portal'" (click)="cambiarModoAtajo('portal')" class="opcion-vidrio rounded-2xl border-2 px-3 py-2.5 text-left cursor-pointer" [style.border-color]="f.modo === 'portal' ? '#006BB9' : null" [style.background]="f.modo === 'portal' ? 'rgb(255 255 255 / 0.92)' : null">
+            <span class="block text-[13px] font-bold text-dep-navy">Del portal</span>
+            <span class="block text-[11.5px] text-slate-600">Una aplicación o un informe</span>
+          </button>
+          <button type="button" role="radio" [attr.aria-checked]="f.modo === 'enlace'" (click)="cambiarModoAtajo('enlace')" class="opcion-vidrio rounded-2xl border-2 px-3 py-2.5 text-left cursor-pointer" [style.border-color]="f.modo === 'enlace' ? '#006BB9' : null" [style.background]="f.modo === 'enlace' ? 'rgb(255 255 255 / 0.92)' : null">
+            <span class="block text-[13px] font-bold text-dep-navy">Enlace web</span>
+            <span class="block text-[11.5px] text-slate-600">Cualquier página (Drive, Mineduc…)</span>
+          </button>
+        </div>
+
+        @if (f.modo === 'portal') {
+          <label class="mt-4 block text-[12px] font-bold text-dep-navy" for="atajo-destino">Qué abre</label>
+          <select id="atajo-destino" class="mt-1 w-full border border-white/80 bg-white/70 px-3 py-2.5 text-[13.5px] text-dep-navy" [value]="f.destino" (change)="elegirDestinoAtajo($any($event.target).value)">
+            <option value="" [selected]="!f.destino">Elige una aplicación o un informe…</option>
+            <optgroup label="Aplicaciones">
+              @for (a of appsParaAtajo(); track a.id) { <option [value]="'app:' + a.id" [selected]="f.destino === 'app:' + a.id">{{ a.nombre }}</option> }
+            </optgroup>
+            <optgroup label="Informes">
+              @for (i of informes(); track i.id) { <option [value]="'informe:' + i.id" [selected]="f.destino === 'informe:' + i.id">{{ i.nombre }}</option> }
+            </optgroup>
+          </select>
+        } @else {
+          <label class="mt-4 block text-[12px] font-bold text-dep-navy" for="atajo-url">Dirección de la página</label>
+          <input id="atajo-url" type="url" inputmode="url" placeholder="https://…" maxlength="500" [value]="f.url" (input)="f.url = $any($event.target).value; f.error = ''"
+            class="mt-1 w-full border border-white/80 bg-white/70 px-3 py-2.5 text-[13.5px] text-dep-navy" />
+        }
+        <label class="mt-4 block text-[12px] font-bold text-dep-navy" for="atajo-nombre">Nombre en el rectángulo</label>
+        <input id="atajo-nombre" type="text" maxlength="60" [value]="f.nombre" (input)="f.nombre = $any($event.target).value; f.error = ''" placeholder="Por ejemplo: Mi informe mensual"
+          class="mt-1 w-full border border-white/80 bg-white/70 px-3 py-2.5 text-[13.5px] text-dep-navy" />
+        @if (f.error) { <p class="mt-3 text-[12.5px] font-semibold text-[#b4112b]" role="alert">{{ f.error }}</p> }
+
+        <div class="mt-6 flex flex-wrap items-center gap-2">
+          <button type="button" (click)="guardarAtajo()" [disabled]="guardandoAtajos()" class="bg-dep-navy px-4 py-2 text-[13px] font-bold text-white transition hover:bg-dep-blue disabled:opacity-50 cursor-pointer">{{ guardandoAtajos() ? 'Guardando…' : 'Guardar' }}</button>
+          <button type="button" (click)="cerrarFormAtajo()" class="border border-white/80 bg-white/60 px-4 py-2 text-[13px] font-bold text-dep-navy transition hover:bg-white cursor-pointer">Cancelar</button>
+          @if (f.id) {
+            <button type="button" (click)="quitarAtajo()" [disabled]="guardandoAtajos()" class="ml-auto px-2 py-2 text-[13px] font-bold text-[#b4112b] underline-offset-2 hover:underline disabled:opacity-50 cursor-pointer">Quitar acceso directo</button>
+          }
+        </div>
+      </section>
+    </div>
+  }
 
 <!-- Ícono de un módulo (los mismos íconos de línea de siempre, con el color del módulo). -->
 <ng-template #icono let-icono let-color="color" let-chico="chico">

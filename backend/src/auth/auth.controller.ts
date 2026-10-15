@@ -1,9 +1,11 @@
 import { BitacoraService } from '../bitacora/bitacora.service';
-import { Body, Controller, Get, HttpCode, Ip, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Ip, Patch, Post, Put, UseGuards } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsOptional, Matches } from 'class-validator';
 import { Repository } from 'typeorm';
 import { Usuario } from '../usuarios/entities/usuario.entity';
+import { AtajosUsuario } from './atajos-usuario.entity';
+import { limpiarAtajos } from './atajos';
 import { LoginDto } from './auth.dto';
 import { AuthService, FONDO_VALIDO, usuarioPublico } from './auth.service';
 
@@ -21,6 +23,7 @@ export class AuthController {
     private readonly auth: AuthService,
     private readonly bitacora: BitacoraService,
     @InjectRepository(Usuario) private readonly usuarios: Repository<Usuario>,
+    @InjectRepository(AtajosUsuario) private readonly atajos: Repository<AtajosUsuario>,
   ) {}
 
   // Preferencias de vista de la persona con sesión (hoy: su fondo de pantalla).
@@ -30,6 +33,23 @@ export class AuthController {
   async vista(@UsuarioActual() usuario: Usuario, @Body() dto: VistaDto) {
     await this.usuarios.update({ id: usuario.id }, { fondo: dto.fondo ?? null });
     return { fondo: dto.fondo ?? null };
+  }
+
+  // Accesos directos de la persona con sesión (ventana Aplicaciones). Cada
+  // persona ve y cambia solo los suyos; se guarda la lista completa.
+  @UseGuards(JwtAuthGuard)
+  @Get('atajos')
+  async leerAtajos(@UsuarioActual() usuario: Usuario) {
+    const fila = await this.atajos.findOneBy({ usuarioId: usuario.id });
+    return limpiarAtajos(fila?.atajos);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put('atajos')
+  async guardarAtajos(@UsuarioActual() usuario: Usuario, @Body() cuerpo: { atajos?: unknown }) {
+    const atajos = limpiarAtajos(cuerpo?.atajos);
+    await this.atajos.save({ usuarioId: usuario.id, atajos });
+    return atajos;
   }
 
   @Post('login')
